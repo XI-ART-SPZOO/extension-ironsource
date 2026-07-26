@@ -1,212 +1,297 @@
 #!/usr/bin/env python3
 
-import json
+"""Generate and validate the Defold iOS LevelPlay manifests."""
 
-try:
-    import requests
-except ImportError:
-    print("Requests not found. Installing...")
-    try:
-        import pip
-        pip.main(['install', 'requests'])
-        import requests
-    except:
-        print("Failed to install Requests. Please install it manually.")
-        exit()
-try:
-    from bs4 import BeautifulSoup
-except ImportError:
-    print("BeautifulSoup not found. Installing...")
-    try:
-        import pip
-        pip.main(['install', 'beautifulsoup4'])
-        from bs4 import BeautifulSoup
-    except:
-        print("Failed to install BeautifulSoup. Please install it manually.")
-        exit()
+from __future__ import annotations
 
-def extract_text_after(text, var_name):
-    words = text.split()
-    try:
-        index = words.index(var_name)
-    except ValueError:
-        print(f"The '{var_name}' string was not found in the text.")
-        return ""
-    result = " ".join(words[index+1:])
-    return result
+import argparse
+import sys
+from pathlib import Path
+from typing import Any, Sequence
 
-def remove_spaces_and_newlines(text):
-    cleaned_text = text.strip()
-    return cleaned_text
+from common import (
+    DEFAULT_EXTENSION_DIR,
+    IOS_KEYS,
+    UpdaterError,
+    cocoa_latest_spec,
+    load_catalog,
+    write_or_check,
+)
 
-def parse_js_table(url, var_name):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    script = soup.find('script', string=lambda t: t and var_name in t)
-    if script:
-        text = extract_text_after(script.text, var_name)
-        start = text.find('{')
-        end = text.rfind('}') + 1
-        json_data = text[start:end]
-        table = json.loads(json_data)
-        return table
-    else:
-        print(f"Did not find '{var_name}' in the URL '{url}'")
-        return {}
 
-url = "https://developers.is.com/ironsource-mobile/ios/mediation-networks-ios/"
-var_name = "sdk_data"
-site_values = parse_js_table(url, var_name)
+DEFAULT_PODFILE = DEFAULT_EXTENSION_DIR / "manifests/ios/Podfile"
+DEFAULT_INFO_PLIST = DEFAULT_EXTENSION_DIR / "manifests/ios/Info.plist"
 
-mapping = {
-    'AppLovin': 'applovin',
-    'APS': 'aps',
-    'BidMachine': 'bidmachine',
-    'BIGO Ads': 'bigo',
-    'Chartboost': 'charboost',
-    'CSJ': 'csj',
-    'DT Exchange': 'dt_exchange',
-    'Facebook': 'facebook',
-    'Google': 'admob',
-    'HyprMX': 'hyprmx',
-    'InMobi': 'inmobi',
-    'Liftoff Monetize': 'liftoff',
-    'Maio': 'maio',
-    'Mintegral': 'mintegral',
-    'Moloco': 'moloco',
-    'MobileFuse': 'mobile_fuse',
-    'Ogury': 'ogury',
-    'myTarget': 'mytarget',
-    'Pangle': 'pangle',
-    'Smaato': 'smaato',
-    'SuperAwesome': 'superawesome',
-    'Tencent': 'tencent',
-    'UnityAds': 'unityads',
-    'Verve': 'verve',
-    'Yandex Ads': 'yandex_ads'
+# These are the current official CocoaPods product identifiers. CocoaPods
+# identifiers cannot be replaced by the public LevelPlay product name.
+LEVELPLAY_SDK_POD = "IronSourceSDK"
+AD_QUALITY_POD = "IronSourceAdQualitySDK"
+ADAPTER_PODS = {
+    "applovin": "IronSourceAppLovinAdapter",
+    "aps": "IronSourceAPSAdapter",
+    "bidmachine": "IronSourceBidMachineAdapter",
+    "bigo": "IronSourceBigoAdapter",
+    "chartboost": "IronSourceChartboostAdapter",
+    "dt_exchange": "IronSourceFyberAdapter",
+    "admob": "IronSourceAdMobAdapter",
+    "hyprmx": "IronSourceHyprMXAdapter",
+    "inmobi": "IronSourceInMobiAdapter",
+    "liftoff": "IronSourceVungleAdapter",
+    "line": "IronSourceLineAdapter",
+    "meta": "IronSourceFacebookAdapter",
+    "mintegral": "IronSourceMintegralAdapter",
+    "mobilefuse": "IronSourceMobileFuseAdapter",
+    "moloco": "IronSourceMolocoAdapter",
+    "ogury": "IronSourceOguryAdapter",
+    "pangle": "IronSourcePangleAdapter",
+    "pubmatic": "LevelPlayPubMaticAdapter",
+    "smaato": "IronSourceSmaatoAdapter",
+    "superawesome": "IronSourceSuperAwesomeAdapter",
+    "unity_ads": "IronSourceUnityAdsAdapter",
+    "verve": "IronSourceVerveAdapter",
+    "vk": "IronSourceMyTargetAdapter",
+    "yandex": "IronSourceYandexAdapter",
+    "yso": "IronSourceYSOAdapter",
+    "tencent": "IronSourceTencentAdapter",
 }
 
-result = ""
-lines = result.splitlines()
-result = '\n'.join(lines[:-1])
-result += "\n\n"
 
-repositories = """platform :ios, '13.0'\n"""
-repositories += site_values['sdk_cocoapods']
+def condition(key: str) -> str:
+    return f"levelplay.{key}_ios"
 
-del site_values['sdk_maven']
-del site_values['sdk_cocoapods']
-stripped_site_values = {key.strip(): value for key, value in site_values.items()}
-for key, value in stripped_site_values.items():
-    if mapping.get(key) is None:
-        exit(f"Adapter `{key}` was added. Please change `mappings` in this script and add adapter to `game.project` and `ext.properties`")
 
-for key, value in mapping.items():
-    if stripped_site_values.get(key) is None:
-        exit(f"Adapter `{key}` was removed. Please change `mappings` in this script and remove adapter from `game.project` and `ext.properties`")
+def render_podfile(catalog: dict[str, Any]) -> str:
+    minimum_version = catalog["levelplay"]["ios"]["minimum_version"]
+    sdk_version = catalog["levelplay"]["ios"]["version"]
+    lines = [
+        "# Generated by updater/ios.py from updater/networks.json.",
+        "# Run `python3 updater/ios.py check` in CI.",
+        f"platform :ios, '{minimum_version}'",
+        "",
+        f"pod '{LEVELPLAY_SDK_POD}', '{sdk_version}'",
+        (
+            f"pod '{AD_QUALITY_POD}', "
+            f"'{catalog['levelplay']['ios']['ad_quality_version']}'"
+        ),
+    ]
 
-for key, value in mapping.items():
-    result += f"{{{{#iron_source.{value}_ios}}}}\n"
-    result += remove_spaces_and_newlines(stripped_site_values[key]['code'])
-    result += f"\n{{{{/iron_source.{value}_ios}}}}\n\n"
+    for key in IOS_KEYS:
+        network = catalog["networks"][key]
+        version = network["ios"]["adapter_version"]
+        lines.extend(
+            (
+                "",
+                f"{{{{#{condition(key)}}}}}",
+                f"# {network['display_name']}",
+                f"pod '{ADAPTER_PODS[key]}', '{version}'",
+                f"{{{{/{condition(key)}}}}}",
+            )
+        )
 
-result = repositories + result
+    lines.append("")
+    return "\n".join(lines)
 
-with open("../extension-ironsource/manifests/ios/Podfile", "w") as file:
-    file.write(result)
 
-# Parsing PLIST_NETWORK_IDS and generating Info.plist
-skadnetwork_url = "https://developers.is.com/ironsource-mobile/flutter/managing-skadnetwork-ids/"
-var_name = "PLIST_NETWORK_IDS"
-skadnetwork_data = parse_js_table(skadnetwork_url, var_name)
+def skadnetwork_lines(catalog: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for identifier in catalog["levelplay"]["ios"]["skadnetwork_ids"]:
+        lines.append(
+            "            <dict><key>SKAdNetworkIdentifier</key>"
+            f"<string>{identifier}</string></dict>"
+        )
 
-if skadnetwork_data:
-    ironSource_ids = set(skadnetwork_data.get("ironSource", [])[1])
-    cleaned_networks = {}
+    for key in IOS_KEYS:
+        identifiers = catalog["networks"][key]["ios"].get("skadnetwork_ids", [])
+        if not identifiers:
+            continue
+        lines.append(f"{{{{#{condition(key)}}}}}")
+        for identifier in identifiers:
+            lines.append(
+                "            <dict><key>SKAdNetworkIdentifier</key>"
+                f"<string>{identifier}</string></dict>"
+            )
+        lines.append(f"{{{{/{condition(key)}}}}}")
 
-    for network, ids in skadnetwork_data.items():
-        if network != "ironSource":
-            cleaned_ids = [id_ for id_ in ids[1] if id_ not in ironSource_ids]
-            if cleaned_ids:
-                cleaned_networks[network] = cleaned_ids
+    return lines
 
-    skadnetwork_ids = list(ironSource_ids)  # Start with ironSource IDs
-else:
-    skadnetwork_ids = []
 
-plist_template = """<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd" [ <!ATTLIST key merge (keep) #IMPLIED> ]>
-<plist version="1.0">
-    <dict>
-        <key merge='keep'>SKAdNetworkItems</key>
-        <array>
-//here
-        </array>
+def render_info_plist(catalog: dict[str, Any]) -> str:
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
+        '"http://www.apple.com/DTDs/PropertyList-1.0.dtd" '
+        '[ <!ATTLIST key merge (keep) #IMPLIED> ]>',
+        "<!-- Generated by updater/ios.py from updater/networks.json. -->",
+        "<!-- The catalog contains Unity's primary SKAdNetwork IDs. Add the -->",
+        "<!-- app/network-specific partner IDs linked from Unity's manual. -->",
+        '<plist version="1.0">',
+        "    <dict>",
+        "        <key merge='keep'>SKAdNetworkItems</key>",
+        "        <array>",
+        *skadnetwork_lines(catalog),
+        "        </array>",
+        "",
+        "        <key>NSAppTransportSecurity</key>",
+        "        <dict>",
+        "            <key>NSAllowsArbitraryLoads</key>",
+        "            <true/>",
+        "        </dict>",
+        "",
+        "{{#levelplay.admob_ios}}",
+        "        <key>GADApplicationIdentifier</key>",
+        "        <string>{{levelplay.admob_ios_appid}}</string>",
+        "{{/levelplay.admob_ios}}",
+        "",
+        "        <key>NSUserTrackingUsageDescription</key>",
+        "        <string>{{levelplay.ios_tracking_usage_description}}</string>",
+        "",
+        "        <key>NSAdvertisingAttributionReportEndpoint</key>",
+        "        <string>https://postbacks-is.com/</string>",
+        "",
+        "{{#levelplay.hyprmx_ios}}",
+        "        <key>NSCameraUsageDescription</key>",
+        "        <string>{{project.title}} requests access to the camera.</string>",
+        "        <key>NSPhotoLibraryAddUsageDescription</key>",
+        "        <string>{{project.title}} requests permission to save photos.</string>",
+        "{{/levelplay.hyprmx_ios}}",
+        "    </dict>",
+        "</plist>",
+        "",
+    ]
+    return "\n".join(lines)
 
-        <key>NSAppTransportSecurity</key>
-        <dict>
-            <key>NSAllowsArbitraryLoads</key>
-            <true/>
-{{#iron_source.ios_enable_ats}}
-            <key>NSAllowsLocalNetworking</key>  
-            <true/>
-            <key>NSAllowsArbitraryLoadsInWebContent</key>
-            <true/>
-            <key>NSAllowsArbitraryLoadsForMedia</key>
-            <true/>
-{{/iron_source.ios_enable_ats}}
-{{#iron_source.tapjoy_ios}}
-            <key>NSExceptionDomains</key>
-            <dict>
-               <key>localhost</key>
-               <dict>           
-                   <key>NSExceptionAllowsInsecureHTTPLoads</key>
-                   <true/>
-               </dict>
-            </dict>
-{{/iron_source.tapjoy_ios}}
-        </dict>
 
-{{#iron_source.admob_ios}}
-        <key>GADApplicationIdentifier</key>
-        <string>{{iron_source.admob_ios_appid}}</string>
-{{/iron_source.admob_ios}}
+def generate_or_check(args: argparse.Namespace, check: bool) -> int:
+    catalog = load_catalog()
+    results = (
+        write_or_check(args.podfile, render_podfile(catalog), check),
+        write_or_check(args.info_plist, render_info_plist(catalog), check),
+    )
+    return 0 if all(results) else 1
 
-        <key>NSUserTrackingUsageDescription</key>
-        <string>{{iron_source.ios_tracking_usage_description}}</string>
 
-{{#iron_source.ios_use_skan}}
-        <key>NSAdvertisingAttributionReportEndpoint</key>
-        <string>https://postbacks-is.com</string>
-{{/iron_source.ios_use_skan}}
+def validate_pod(
+    pod: str, pinned_version: str, timeout: float
+) -> bool:
+    spec = cocoa_latest_spec(pod, timeout)
+    latest_version = str(spec.get("version", ""))
+    if latest_version != pinned_version:
+        print(
+            f"outdated: {pod} {pinned_version} "
+            f"(CocoaPods trunk latest is {latest_version or 'unknown'})",
+            file=sys.stderr,
+        )
+        return False
+    print(f"verified: {pod}:{pinned_version}")
+    return True
 
-{{#iron_source.hyprmx_ios}}
-        <key>NSCameraUsageDescription</key>
-            <string>{{project.title}} requests write access to the Camera</string>
-        <key>NSCalendarsUsageDescription</key>
-            <string>{{project.title}} requests access to the Calendar</string>
-        <key>NSPhotoLibraryUsageDescription</key>
-            <string>{{project.title}} requests access to the Photo Library</string>
-        <key>NSPhotoLibraryAddUsageDescription</key>
-            <string>{{project.title}} requests write access to the Photo Library</string> 
-{{/iron_source.hyprmx_ios}}
 
-    </dict>
-</plist>
-"""
+def refresh(args: argparse.Namespace) -> int:
+    catalog = load_catalog()
+    source = catalog["sources"]["ios_mediation_matrix"]
+    print(f"Unity compatibility matrix: {source}")
 
-# Insert the SKAdNetwork IDs into the plist template
-skadnetwork_items = "\n".join([f"            <dict><key>SKAdNetworkIdentifier</key><string>{item}</string></dict>" for item in skadnetwork_ids])
+    ok = validate_pod(
+        LEVELPLAY_SDK_POD,
+        catalog["levelplay"]["ios"]["version"],
+        args.timeout,
+    )
+    ok = validate_pod(
+        AD_QUALITY_POD,
+        catalog["levelplay"]["ios"]["ad_quality_version"],
+        args.timeout,
+    ) and ok
+    for key in IOS_KEYS:
+        version = catalog["networks"][key]["ios"]["adapter_version"]
+        ok = validate_pod(ADAPTER_PODS[key], version, args.timeout) and ok
 
-# Add blocks for each network
-for network, ids in cleaned_networks.items():
-    if network in mapping:
-        network_key = mapping[network]
-        skadnetwork_items += f"\n{{{{#iron_source.{network_key}_ios}}}}\n"
-        skadnetwork_items += "\n".join([f"            <dict><key>SKAdNetworkIdentifier</key><string>{item}</string></dict>" for item in ids])
-        skadnetwork_items += f"\n{{{{/iron_source.{network_key}_ios}}}}\n"
+    if ok:
+        print("iOS catalog metadata is valid.")
+        return 0
+    print(
+        "iOS catalog validation failed. Reconcile versions with the Unity "
+        "compatibility matrix before editing updater/networks.json.",
+        file=sys.stderr,
+    )
+    return 1
 
-plist_content = plist_template.replace("//here", skadnetwork_items)
 
-with open("../extension-ironsource/manifests/ios/Info.plist", "w") as file:
-    file.write(plist_content)
+def add_output_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--podfile",
+        type=Path,
+        default=DEFAULT_PODFILE,
+        help=f"Podfile output (default: {DEFAULT_PODFILE})",
+    )
+    parser.add_argument(
+        "--info-plist",
+        type=Path,
+        default=DEFAULT_INFO_PLIST,
+        help=f"Info.plist output (default: {DEFAULT_INFO_PLIST})",
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog=(
+            "Compatibility aliases: --generate, --check, and --refresh map to "
+            "the corresponding commands."
+        ),
+    )
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    generate_parser = commands.add_parser(
+        "generate", help="generate deterministic iOS manifests"
+    )
+    add_output_arguments(generate_parser)
+
+    check_parser = commands.add_parser(
+        "check", help="diff checked-in iOS manifests against generated output"
+    )
+    add_output_arguments(check_parser)
+
+    refresh_parser = commands.add_parser(
+        "refresh",
+        help="validate pinned SDK and adapters against live CocoaPods metadata",
+    )
+    refresh_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=20.0,
+        help="per-request network timeout in seconds (default: 20)",
+    )
+    return parser
+
+
+def normalize_compatibility_aliases(argv: Sequence[str]) -> list[str]:
+    values = list(argv)
+    aliases = {
+        "--generate": "generate",
+        "--check": "check",
+        "--refresh": "refresh",
+    }
+    if values and values[0] in aliases:
+        values[0] = aliases[values[0]]
+    return values
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    values = normalize_compatibility_aliases(
+        sys.argv[1:] if argv is None else argv
+    )
+    args = parser.parse_args(values)
+    try:
+        if args.command == "generate":
+            return generate_or_check(args, False)
+        if args.command == "check":
+            return generate_or_check(args, True)
+        return refresh(args)
+    except UpdaterError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

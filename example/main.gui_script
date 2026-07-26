@@ -1,6 +1,5 @@
-if not ironsource then
-    error("Extension works only on IOS and Android")
-    return
+if not levelplay then
+    error("The LevelPlay extension is available only on Android and iOS")
 end
 
 local log = require("example.log")
@@ -8,153 +7,464 @@ local ui = require("example.ui")
 local callback = require("example.callback")
 local dirtylarry = require("dirtylarry.dirtylarry")
 
-local INT_PLACEMENT = "DefaultInterstitial"
-local REW_PLACEMENT = "DefaultRewardedVideo"
+local CONFIG = {
+    Android = {
+        app_key = "25b63cf85",
+        interstitial = "h3xw38h9214adgxo",
+        rewarded = "syz3d8ekts22q0or",
+        banner = "4fpetq4lhe5lsw3e",
+    },
+    ["iPhone OS"] = {
+        app_key = "25c43a4a5",
+        interstitial = "obg6ohwts3y690ks",
+        rewarded = "l1quzz1xmmdhw5er",
+        banner = "xc2bsuntn9ea734t",
+    },
+}
 
-local data = {
-    ["menu"] = { type = "menu",
-        ["main"] = {},
-        ["interstitial"] = {},
-        ["rewarded"] = {},
-        ["banner"] = {},
+local INTERSTITIAL_PLACEMENT = "Default"
+local REWARDED_PLACEMENT = "Default"
+
+local DATA = {
+    menu = {
+        type = "menu",
+        main = {},
+        interstitial = {},
+        rewarded = {},
+        banner = {},
     },
-    ["main_page"] = { type = "page",
-        ["init"] = {},
-        ["validate"] = {},
-        ["test_suite"] = {},
-        ["auto_test"] = {},
-        ["load_consent"] = {},
-        ["show_consent"] = {},
+    main_page = {
+        type = "page",
+        initialize = {},
+        sdk_version = {},
+        validate = {},
+        test_suite = {},
+        tracking_status = {},
+        request_tracking = {},
+        dynamic_user_id = {},
     },
-    ["interstitial_page"] = { type = "page",
-        ["load_interstitial"] = {},
-        ["is_interstitial_ready"] = {},
-        ["get_interstitial_placement_info"] = {},
-        ["is_interstitial_placement_capped"] = {},
-        ["show_interstitial"] = {},
+    interstitial_page = {
+        type = "page",
+        create_interstitial = {},
+        load_interstitial = {},
+        interstitial_ready = {},
+        interstitial_capped = {},
+        show_interstitial = {},
+        destroy_interstitial = {},
     },
-    ["rewarded_page"] = { type = "page",
-        ["should_track_network_state"] = {},
-        ["is_rewarded_video_available"] = {},
-        ["show_rewarded_video"] = {},
-        ["get_rewarded_video_placement_info"] = {},
-        ["is_rewarded_video_placement_capped"] = {},
-        ["set_dynamic_user_id"] = {},
+    rewarded_page = {
+        type = "page",
+        create_rewarded = {},
+        load_rewarded = {},
+        rewarded_ready = {},
+        rewarded_capped = {},
+        get_reward = {},
+        show_rewarded = {},
+        destroy_rewarded = {},
     },
-    ["banner_page"] = { type = "page",
-    }
+    banner_page = {
+        type = "page",
+        create_banner = {},
+        load_banner = {},
+        show_banner = {},
+        hide_banner = {},
+        pause_banner = {},
+        resume_banner = {},
+        destroy_banner = {},
+    },
 }
 
 local actions = {}
-actions.main = function(self, el)
-    ui.disable_all(self.ui, "page")
-    ui.enable(self.ui.main_page, true)
+local continue_initialization
+
+local function set_status(self, text)
+    gui.set_text(self.status, text)
+    print("status:", text)
 end
-actions.interstitial = function(self, el)
-    ui.disable_all(self.ui, "page")
-    ui.enable(self.ui.interstitial_page, true)
+
+local function require_handle(self, field, operation)
+    local handle = self[field]
+    if not handle then
+        print(operation .. ": create the ad object after initialization first")
+    end
+    return handle
 end
-actions.rewarded = function(self, el)
-    ui.disable_all(self.ui, "page")
-    ui.enable(self.ui.rewarded_page, true)
-end
-actions.banner = function(self, el)
-    ui.disable_all(self.ui, "page")
-    ui.enable(self.ui.banner_page, true)
-end
-actions.init = function(self, el)
-    ironsource.set_user_id("UserID");
-    ironsource.set_consent(true)
-    ironsource.set_adapters_debug(true)
-    ironsource.set_metadata("is_test_suite", "enable")
-    local sysinfo = sys.get_sys_info()
-    if sysinfo.system_name == "Android" then
-        ironsource.init("19bfef645")
-    elseif sysinfo.system_name == "iPhone OS" then
-        ironsource.init("1a349ce5d")
+
+local function create_interstitial(self)
+    if not self.initialized then
+        print("create interstitial: wait for successful initialization")
+        return
+    end
+    if not self.interstitial then
+        local handle = levelplay.create_interstitial_ad(self.config.interstitial)
+        if handle then
+            self.interstitial = handle
+            print("created interstitial handle", handle)
+        else
+            print("failed to create interstitial")
+        end
     end
 end
-actions.validate = function(self, el)
-    ironsource.validate_integration()
+
+local function create_rewarded(self)
+    if not self.initialized then
+        print("create rewarded: wait for successful initialization")
+        return
+    end
+    if not self.rewarded then
+        local handle = levelplay.create_rewarded_ad(self.config.rewarded)
+        if handle then
+            self.rewarded = handle
+            print("created rewarded handle", handle)
+        else
+            print("failed to create rewarded ad")
+        end
+    end
 end
-actions.test_suite = function(self, el)
-    ironsource.launch_test_suite()
+
+local function create_banner(self)
+    if not self.initialized then
+        print("create banner: wait for successful initialization")
+        return
+    end
+    if not self.banner then
+        local handle = levelplay.create_banner_ad(self.config.banner, {
+            size = levelplay.BANNER_SIZE_ADAPTIVE,
+            position = levelplay.BANNER_POSITION_BOTTOM,
+            placement = "DefaultBanner",
+            respect_safe_area = true,
+        })
+        if handle then
+            self.banner = handle
+            print("created banner handle", handle)
+        else
+            print("failed to create banner")
+        end
+    end
 end
-actions.auto_test = function(self, el)
-    --TODO:run auto-tests
-    print("Not implemented yet!")
+
+local function create_all_ads(self)
+    create_interstitial(self)
+    create_rewarded(self)
+    create_banner(self)
 end
-actions.load_consent = function(self, el)
-    ironsource.load_consent_view("pre")
+
+local function destroy_all_ads(self)
+    if self.interstitial then
+        levelplay.destroy_interstitial_ad(self.interstitial)
+        self.interstitial = nil
+    end
+    if self.rewarded then
+        levelplay.destroy_rewarded_ad(self.rewarded)
+        self.rewarded = nil
+    end
+    if self.banner then
+        levelplay.destroy_banner_ad(self.banner)
+        self.banner = nil
+    end
 end
-actions.show_consent = function(self, el)
-    ironsource.show_consent_view("pre")
+
+local function on_levelplay_event(self, message_id, message)
+    if message_id == levelplay.MSG_TRACKING and self.tracking_for_init then
+        self.tracking_for_init = false
+        -- Meta exposes a separate advertiser-tracking switch. It must reflect
+        -- the ATT result and be set before LevelPlay initialization.
+        levelplay.set_meta_advertiser_tracking(
+            message.event == levelplay.TRACKING_STATUS_AUTHORIZED
+        )
+        continue_initialization(self)
+    elseif message_id == levelplay.MSG_INIT then
+        if message.event == levelplay.EVENT_INIT_SUCCEEDED then
+            self.initializing = false
+            self.initialized = true
+            if self.test_suite_pending then
+                self.test_suite_pending = false
+                set_status(self, "Initialized - opening Test Suite")
+                -- Unity requires the Test Suite to be the first LevelPlay
+                -- operation after initialization succeeds.
+                levelplay.launch_test_suite()
+            else
+                set_status(self, "Initialized - ad objects created")
+                create_all_ads(self)
+            end
+        elseif message.event == levelplay.EVENT_INIT_FAILED then
+            self.initializing = false
+            self.test_suite_pending = false
+            if self.test_suite_mode then
+                set_status(self, "Test Suite init failed - restart required")
+            else
+                set_status(self, "Initialization failed - see log")
+            end
+        end
+    end
 end
-actions.load_interstitial = function(self, el)
-    ironsource.load_interstitial()
+
+local function apply_demo_privacy()
+    -- Demo assumptions only. A production app must supply choices collected
+    -- from its own consent flow and follow the current privacy documentation.
+    levelplay.set_gdpr_consent(true)
+    levelplay.set_ccpa(false)
+    levelplay.set_coppa(false)
 end
-actions.is_interstitial_ready = function(self, el)
-    print("is_interstitial_ready: ", ironsource.is_interstitial_ready())
-end
-actions.get_interstitial_placement_info = function(self, el)
-    local msg = log.get_table_as_str(ironsource.get_interstitial_placement_info(INT_PLACEMENT))
-    print(tostring(msg))
-end
-actions.is_interstitial_placement_capped = function(self, el)
-    print(ironsource.is_interstitial_placement_capped(INT_PLACEMENT))
-end
-actions.show_interstitial = function(self, el)
-    sound.set_group_gain("master", 0)
-    ironsource.show_interstitial(self.next_int_placement)
-    print("show: " .. tostring(self.next_int_placement))
-    if self.next_int_placement == INT_PLACEMENT then
-        self.next_int_placement = nil
+
+continue_initialization = function(self)
+    if self.test_suite_mode then
+        -- Official Test Suite flow: enable its metadata, initialize, and
+        -- launch immediately from the success callback without creating ad
+        -- objects or invoking other LevelPlay operations first.
+        levelplay.set_metadata("is_test_suite", "enable")
+        self.test_suite_pending = true
+        set_status(self, "Initializing for Test Suite...")
+        levelplay.init(self.config.app_key, "DefoldLevelPlayTestSuite")
     else
-        self.next_int_placement = INT_PLACEMENT
+        set_status(self, "Initializing...")
+        levelplay.init(self.config.app_key, "DefoldLevelPlayDemoUser")
     end
 end
-actions.should_track_network_state = function(self, el)
-    ironsource.should_track_network_state(true)
+
+local function begin_initialization(self)
+    apply_demo_privacy()
+    self.initializing = true
+
+    if sys.get_sys_info().system_name == "iPhone OS" then
+        local status = levelplay.get_tracking_authorization_status()
+        if status == levelplay.TRACKING_STATUS_NOT_DETERMINED then
+            self.tracking_for_init = true
+            set_status(self, "Waiting for tracking choice...")
+            levelplay.request_tracking_authorization()
+            return
+        end
+
+        -- A terminal ATT state already exists. Pass it to Meta before init;
+        -- this safely returns false when the Meta adapter is not linked.
+        levelplay.set_meta_advertiser_tracking(
+            status == levelplay.TRACKING_STATUS_AUTHORIZED
+        )
+    end
+
+    continue_initialization(self)
 end
-actions.is_rewarded_video_available = function(self, el)
-    print("is_rewarded_video_available: ", ironsource.is_rewarded_video_available())
+
+actions.initialize = function(self)
+    if self.test_suite_mode then
+        print("restart the app before switching from Test Suite mode")
+        return
+    end
+    if self.initialized or self.initializing then
+        print("initialization already requested")
+        return
+    end
+
+    levelplay.set_adapters_debug(true)
+    begin_initialization(self)
 end
-actions.show_rewarded_video = function(self, el)
-    sound.set_group_gain("master", 0)
-    ironsource.show_rewarded_video(self.next_rew_placement)
-    print("show: " .. tostring(self.next_rew_placement))
-    if self.next_rew_placement == REW_PLACEMENT then
-        self.next_rew_placement = nil
+
+actions.sdk_version = function()
+    print("SDK version:", levelplay.get_sdk_version())
+end
+
+actions.validate = function()
+    levelplay.validate_integration()
+end
+
+actions.test_suite = function(self)
+    if self.test_suite_mode or self.sdk_operation_started
+        or self.initialized or self.initializing then
+        print("Test Suite must be the first SDK mode; restart the app to use it")
+        return
+    end
+
+    self.test_suite_mode = true
+    begin_initialization(self)
+end
+
+actions.tracking_status = function()
+    print("tracking status:", levelplay.get_tracking_authorization_status())
+end
+
+actions.request_tracking = function()
+    levelplay.request_tracking_authorization()
+end
+
+actions.dynamic_user_id = function()
+    print("dynamic user ID accepted:", levelplay.set_dynamic_user_id("RuntimeDemoUser"))
+end
+
+actions.create_interstitial = create_interstitial
+
+actions.load_interstitial = function(self)
+    local handle = require_handle(self, "interstitial", "load interstitial")
+    if handle then
+        levelplay.load_interstitial_ad(handle)
+    end
+end
+
+actions.interstitial_ready = function(self)
+    local handle = require_handle(self, "interstitial", "check interstitial")
+    if handle then
+        print("interstitial ready:", levelplay.is_interstitial_ad_ready(handle))
+    end
+end
+
+actions.interstitial_capped = function()
+    print("interstitial placement capped:",
+        levelplay.is_interstitial_placement_capped(INTERSTITIAL_PLACEMENT))
+end
+
+actions.show_interstitial = function(self)
+    local handle = require_handle(self, "interstitial", "show interstitial")
+    if handle
+        and levelplay.is_interstitial_ad_ready(handle)
+        and not levelplay.is_interstitial_placement_capped(INTERSTITIAL_PLACEMENT) then
+        sound.set_group_gain("master", 0)
+        levelplay.show_interstitial_ad(handle, INTERSTITIAL_PLACEMENT)
     else
-        self.next_rew_placement = REW_PLACEMENT
+        print("interstitial is not ready")
     end
 end
-actions.get_rewarded_video_placement_info = function(self, el)
-    local msg = log.get_table_as_str(ironsource.get_rewarded_video_placement_info(REW_PLACEMENT))
-    print(tostring(msg))
+
+actions.destroy_interstitial = function(self)
+    local handle = require_handle(self, "interstitial", "destroy interstitial")
+    if handle then
+        levelplay.destroy_interstitial_ad(handle)
+        self.interstitial = nil
+    end
 end
-actions.is_rewarded_video_placement_capped = function(self, el)
-    print(ironsource.is_rewarded_video_placement_capped(REW_PLACEMENT))
+
+actions.create_rewarded = create_rewarded
+
+actions.load_rewarded = function(self)
+    local handle = require_handle(self, "rewarded", "load rewarded")
+    if handle then
+        levelplay.load_rewarded_ad(handle)
+    end
 end
-actions.set_dynamic_user_id = function(self, el)
-    ironsource.set_dynamic_user_id("custom_user_id")
+
+actions.rewarded_ready = function(self)
+    local handle = require_handle(self, "rewarded", "check rewarded")
+    if handle then
+        print("rewarded ready:", levelplay.is_rewarded_ad_ready(handle))
+    end
+end
+
+actions.rewarded_capped = function()
+    print("rewarded placement capped:",
+        levelplay.is_rewarded_placement_capped(REWARDED_PLACEMENT))
+end
+
+actions.get_reward = function(self)
+    local handle = require_handle(self, "rewarded", "get reward")
+    if handle then
+        print("reward:",
+            log.table_to_string(levelplay.get_reward(handle, REWARDED_PLACEMENT)))
+    end
+end
+
+actions.show_rewarded = function(self)
+    local handle = require_handle(self, "rewarded", "show rewarded")
+    if handle
+        and levelplay.is_rewarded_ad_ready(handle)
+        and not levelplay.is_rewarded_placement_capped(REWARDED_PLACEMENT) then
+        sound.set_group_gain("master", 0)
+        levelplay.show_rewarded_ad(handle, REWARDED_PLACEMENT)
+    else
+        print("rewarded ad is not ready")
+    end
+end
+
+actions.destroy_rewarded = function(self)
+    local handle = require_handle(self, "rewarded", "destroy rewarded")
+    if handle then
+        levelplay.destroy_rewarded_ad(handle)
+        self.rewarded = nil
+    end
+end
+
+actions.create_banner = create_banner
+
+actions.load_banner = function(self)
+    local handle = require_handle(self, "banner", "load banner")
+    if handle then
+        levelplay.load_banner_ad(handle)
+    end
+end
+
+actions.show_banner = function(self)
+    local handle = require_handle(self, "banner", "show banner")
+    if handle then
+        levelplay.show_banner_ad(handle)
+    end
+end
+
+actions.hide_banner = function(self)
+    local handle = require_handle(self, "banner", "hide banner")
+    if handle then
+        levelplay.hide_banner_ad(handle)
+    end
+end
+
+actions.pause_banner = function(self)
+    local handle = require_handle(self, "banner", "pause banner refresh")
+    if handle then
+        levelplay.pause_banner_auto_refresh(handle)
+    end
+end
+
+actions.resume_banner = function(self)
+    local handle = require_handle(self, "banner", "resume banner refresh")
+    if handle then
+        levelplay.resume_banner_auto_refresh(handle)
+    end
+end
+
+actions.destroy_banner = function(self)
+    local handle = require_handle(self, "banner", "destroy banner")
+    if handle then
+        levelplay.destroy_banner_ad(handle)
+        self.banner = nil
+    end
+end
+
+local function show_page(self, page)
+    ui.disable_all(self.ui, "page")
+    ui.enable(self.ui[page], true)
+end
+
+actions.main = function(self)
+    show_page(self, "main_page")
+end
+
+actions.interstitial = function(self)
+    show_page(self, "interstitial_page")
+end
+
+actions.rewarded = function(self)
+    show_page(self, "rewarded_page")
+end
+
+actions.banner = function(self)
+    show_page(self, "banner_page")
 end
 
 function init(self)
-    log.print_all_sdk_ent()
-    self.console = gui.get_node("console")
-    self.ui = ui.fill_tree(data, actions)
-    ui.enable(self.ui.main_page, true)
+    self.config = CONFIG[sys.get_sys_info().system_name]
+    assert(self.config, "The LevelPlay sample requires Android or iOS")
 
-    -- if IDFA doesn't supported (ios < 14 or android) then hide buttons
-    local need_to_show = ironsource.MSG_IDFA and (ironsource.get_idfa_status() == ironsource.EVENT_STATUS_NOT_DETERMINED)
-    if not need_to_show then
-        ui.enable(self.ui.load_consent, false)
-        ui.enable(self.ui.show_consent, false)
-    end
+    self.console = gui.get_node("console")
+    self.status = gui.get_node("status")
+    self.ui = ui.fill_tree(DATA, actions)
+    ui.enable(self.ui.main_page, true)
+    set_status(self, "Not initialized")
+
+    log.print_all_sdk_entities()
+    callback.set(on_levelplay_event)
     msg.post(".", "acquire_input_focus")
-    callback.set()
     msg.post("#sound", "play_sound")
+end
+
+function final(self)
+    destroy_all_ads(self)
+    callback.clear()
 end
 
 function update(self, dt)
@@ -162,10 +472,20 @@ function update(self, dt)
 end
 
 function on_input(self, action_id, action)
-    for name, el in pairs(self.ui) do
+    for _, el in pairs(self.ui) do
         if ui.is_button(el) and ui.is_enabled(el) then
             dirtylarry:button(el.name, action_id, action, function()
-                print("click: "..el.name)
+                print("action:", el.name)
+
+                local is_menu = el.parent and el.parent.type == "menu"
+                if not is_menu and self.test_suite_mode then
+                    print("Test Suite mode is locked; restart the app for other SDK actions")
+                    return
+                end
+                if not is_menu and el.name ~= "test_suite" then
+                    self.sdk_operation_started = true
+                end
+
                 actions[el.name](self, el)
             end)
         end

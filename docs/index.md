@@ -1,45 +1,287 @@
 ---
-title: Defold IronSource extension API documentation
-brief: This manual covers how to get use IronSource ad mediation to show ads on iOS and Android in Defold.
+title: Unity LevelPlay extension for Defold
+brief: Configure and use Unity LevelPlay SDK 9 mediation on Android and iOS.
 ---
 
-# Defold IronSource extension API documentation
+# Unity LevelPlay extension for Defold
 
-This extension provides a unified and simple to use interface to use IronSource ad mediation on iOS and Android.
-
+This extension provides an object-based Lua API for Unity LevelPlay mediation on Android and iOS. It follows the SDK 9 lifecycle: initialize the SDK, create an ad object with an ad-unit ID, then explicitly load and show that object.
 
 ## Installation
-To use IronSource in your Defold project, add a version of the IronSource extension to your `game.project` dependencies from the list of available [Releases](https://github.com/defold/extension-ironsource/releases). Find the version you want, copy the URL to ZIP archive of the release and add it to the project dependencies.
+
+Add a released archive to the **Dependencies** field in `game.project`:
+
+```text
+https://github.com/defold/extension-levelplay/archive/refs/tags/<version>.zip
+```
+
+Choose a version from [Releases](https://github.com/defold/extension-levelplay/releases), replace `<version>`, then select **Project → Fetch Libraries**.
 
 ![](add-dependency.png)
 
-Select `Project->Fetch Libraries` once you have added the version to `game.project` to download the version and make it available in your project.
+## Project configuration
 
-## Setup
+Add a `[levelplay]` section and enable only the adapters used by your dashboard configuration. The example intentionally enables only Unity Ads:
 
-1. Copy/paste `[iron_source]` section from [game.project](https://github.com/defold/extension-ironsource/blob/main/game.project) file into your `game.project`.
+```ini
+[levelplay]
+unity_ads_android = 1
+unity_ads_ios = 1
+ios_tracking_usage_description = Your data will be used to provide a more relevant advertising experience.
+```
 
-2. If you don't need an adapter, just set `0` into an adapter's field (these fields are boolean and may be `1` or `0`.).
+Available adapter prefixes are:
 
-3. The `admob_android_appid` field should contain `app_id` if you want to use AdMob adapter specify admob_android as 1. The same for `admob_ios` and `admob_ios_appid`.
+```text
+applovin, aps, bidmachine, bigo, chartboost, dt_exchange, admob,
+hyprmx, inmobi, liftoff, line, meta, mintegral, mobilefuse, moloco,
+ogury, pangle, pubmatic, smaato, superawesome, unity_ads, verve, vk,
+yandex, yso
+```
 
-4. Use the official Android and iOS manuals for SDK integration, including everything related to the SDK functions: initialization, AD loading and showing, meta data, consent, work with user id and the other functions. Also for Adapters integration. Ignore everything related to Gradle, library installation, changes in manifests, and so on.
+Append `_android` or `_ios` to a prefix. Tencent is available as
+`tencent_ios`. When enabling AdMob on iOS, also set `admob_ios_appid`.
+The current Android Google Mobile Ads SDK obtains the app ID from your
+LevelPlay dashboard rather than Android manifest metadata.
 
-5. In Defold the SDK has `ironsource` namespace and all the methods are the same as in official documentation but in camel case. For example if in official documentation you see `IronSource.setMetaData("AppLovin_AgeRestrictedUser","true");` in Defold it will be: `ironsource.set_meta_data("AppLovin_AgeRestrictedUser","true")`.
+Amazon Publisher Services must be configured with its app ID so the extension
+can initialize APS before LevelPlay:
 
-6. The SDK has just one universal callback for everything. Please check [callback.lua](https://github.com/defold/extension-ironsource/blob/main/example/callback.lua) for better understanding.
+```ini
+[levelplay]
+aps_android = 1
+aps_android_app_id = your-aps-android-app-id
+aps_ios = 1
+aps_ios_app_id = your-aps-ios-app-id
+```
 
-## Example
+The Android template includes Google advertising identifier dependencies and
+the `AD_ID` permission by default. Set `android_google_identifiers = 0` for an
+Amazon build or a primarily child-directed build that must omit these
+identifiers. The disabled path also emits the Android manifest removal rule so
+an enabled adapter cannot merge `AD_ID` back in. Set COPPA and all
+network-required device-ID opt-outs before initialization.
 
-See the [example folder](https://github.com/defold/extension-ironsource/tree/main/example) to understand how to use the extension. Especially [ui.gui_script](https://github.com/defold/extension-ironsource/blob/main/example/main.gui_script) and [callback.lua](https://github.com/defold/extension-ironsource/blob/main/example/callback.lua) files.
+The Mintegral switch currently selects its verified overseas SDK and repository,
+not the separate China artifact family. Smaato and Meta network-security
+requirements, APS manifest components and Kotlin runtime, and Mintegral's
+RecyclerView dependency are generated automatically.
 
+Follow the current network integration guide for dashboard setup and any
+network-specific privacy metadata. For Chartboost, set its required COPPA value
+before initialization:
 
-## Troubleshooting
+```lua
+levelplay.set_metadata("CHARTBOOST_COPPA", is_child_directed and "YES" or "NO")
+```
 
-### "Error 508: Interstitial - Server response contains no interstitial data"
+The extension requires Android API 24 or newer and targets API 36. Its iOS
+native templates set the deployment target to iOS 15, matching the current
+Defold iOS toolchain.
 
-If you get such an error, make sure that you initialize ADS right and use test placements. If it still doesn't work ask IronSource support.
+### iOS attribution and transport configuration
 
-## Source code
+The iOS template always enables the transport setting required by the mediated
+SDKs, the LevelPlay attribution endpoint, Unity's current primary
+SKAdNetwork ID, and the primary IDs recorded in this repository for each
+enabled adapter.
 
-The source code is available on [GitHub](https://github.com/defold/extension-ironsource)
+Apple requires the complete current set for every network your application
+uses. Partner-, account-, region-, and app-specific SKAdNetwork and
+AdAttributionKit identifiers cannot be inferred from an adapter switch. Before
+shipping, collect the complete lists from Unity's iOS network guides and each
+enabled partner. Supply a custom project `Info.plist` through Defold's **iOS →
+Info.plist** project setting containing the complete `SKAdNetworkItems` list;
+Defold merges that base manifest with this extension's iOS manifest. Review the
+merged `Info.plist` in the final IPA. See Defold's
+[manifest merge documentation](https://defold.com/manuals/extensions-manifest-merge-tool/)
+and Unity's
+[SKAdNetwork guidance](https://docs.unity.com/en-us/grow/levelplay/sdk/ios/skadnetwork-id-manager).
+
+## App keys and ad-unit IDs
+
+An **app key** identifies the application and is passed only to `levelplay.init()`.
+
+An **ad-unit ID** identifies one dashboard ad unit and is passed to `create_interstitial_ad()`, `create_rewarded_ad()`, or `create_banner_ad()`. An app key and an ad-unit ID are not interchangeable. Each ad object retains its own ad-unit ID, listener, loading state, and integer handle.
+
+The repository example uses Unity's official demo credentials:
+
+| Platform | App key | Interstitial | Rewarded | Banner |
+| --- | --- | --- | --- | --- |
+| Android | `25b63cf85` | `h3xw38h9214adgxo` | `syz3d8ekts22q0or` | `4fpetq4lhe5lsw3e` |
+| iOS | `25c43a4a5` | `obg6ohwts3y690ks` | `l1quzz1xmmdhw5er` | `xc2bsuntn9ea734t` |
+
+Replace every value with credentials from your own LevelPlay dashboard before release.
+
+## Privacy before initialization
+
+Collect privacy choices in your own consent flow and apply them before initialization. The sample values below are placeholders, not a consent-management implementation:
+
+```lua
+levelplay.set_gdpr_consent(user_granted_gdpr_consent)
+levelplay.set_ccpa(user_opted_out_of_sale_or_sharing)
+levelplay.set_coppa(is_child_directed)
+-- When Meta Audience Network is enabled:
+levelplay.set_meta_limited_data_use(use_meta_ldu, 0, 0)
+
+local function initialize_after_tracking(status)
+    -- Meta has a separate iOS flag; call this before init when Meta is enabled.
+    levelplay.set_meta_advertiser_tracking(
+        status == levelplay.TRACKING_STATUS_AUTHORIZED
+    )
+    levelplay.init(APP_KEY, user_id)
+end
+
+local status = levelplay.get_tracking_authorization_status()
+if status == levelplay.TRACKING_STATUS_NOT_DETERMINED then
+    -- In MSG_TRACKING, call initialize_after_tracking(message.event).
+    levelplay.request_tracking_authorization()
+else
+    initialize_after_tracking(status)
+end
+```
+
+For GDPR, `true` means consent was granted. For CCPA and related US privacy signals, `true` means the user opted out of sale or sharing. For COPPA, `true` flags the user as child-directed. Read Unity's current regulation settings for [Android](https://docs.unity.com/en-us/grow/levelplay/sdk/android/regulation-advanced-settings) and [iOS](https://docs.unity.com/en-us/grow/levelplay/sdk/ios/regulation-advanced-settings), obtain legal guidance appropriate to your application, and set network-specific metadata before `init()` when required.
+
+Meta's Limited Data Use setting is not represented by LevelPlay's scalar
+privacy methods, so `set_meta_limited_data_use()` invokes the enabled Meta SDK
+directly. Pass `0, 0` to let Meta determine country and state, or pass the
+codes required by Meta's current documentation.
+`set_meta_advertiser_tracking()` applies Meta's separate iOS tracking flag.
+Both functions return `false` if Meta is not linked or initialization has
+already started.
+
+On iOS, request App Tracking Transparency before `init()` if mediation
+partners should receive the IDFA. The result is delivered through
+`MSG_TRACKING`; `get_tracking_authorization_status()` returns the current
+state. Provide a clear `ios_tracking_usage_description` in `game.project`.
+When Meta's mixed-audience treatment applies, set its documented
+`Meta_Mixed_Audience` metadata value before initialization as well.
+
+## Initialization and ad creation
+
+Install one callback before initializing. Create ad objects only after `EVENT_INIT_SUCCEEDED`:
+
+```lua
+local interstitial
+local rewarded
+local banner
+
+local function levelplay_callback(self, message_id, message)
+    if message_id == levelplay.MSG_INIT then
+        if message.event == levelplay.EVENT_INIT_SUCCEEDED then
+            interstitial = levelplay.create_interstitial_ad(INTERSTITIAL_AD_UNIT_ID)
+            rewarded = levelplay.create_rewarded_ad(REWARDED_AD_UNIT_ID)
+            banner = levelplay.create_banner_ad(BANNER_AD_UNIT_ID, {
+                size = levelplay.BANNER_SIZE_ADAPTIVE,
+                position = levelplay.BANNER_POSITION_BOTTOM,
+                respect_safe_area = true,
+            })
+        else
+            print("LevelPlay init failed", message.error_code, message.error_message)
+        end
+    end
+end
+
+levelplay.set_callback(levelplay_callback)
+levelplay.init(APP_KEY, "example-user")
+```
+
+Initialization reports both success and failure. Do not create or load ad objects merely because `init()` was called.
+
+### Integration Test Suite
+
+The Test Suite is a separate initialization path. Before initialization, set
+`is_test_suite` metadata to `enable`. On `EVENT_INIT_SUCCEEDED`, call
+`launch_test_suite()` immediately; do not create ad objects or invoke other
+LevelPlay SDK operations first. Because LevelPlay initializes once per app
+process, restart the app before switching between the Test Suite and the normal
+ad flow. The example exposes these as separate **Initialize** and **Test suite**
+buttons.
+
+## Interstitial ads
+
+Loading and showing are separate operations:
+
+```lua
+levelplay.load_interstitial_ad(interstitial)
+
+-- Later, after EVENT_AD_LOADED:
+local placement = "Default"
+if levelplay.is_interstitial_ad_ready(interstitial)
+    and not levelplay.is_interstitial_placement_capped(placement) then
+    levelplay.show_interstitial_ad(interstitial, placement)
+end
+```
+
+Call `destroy_interstitial_ad()` when the object is no longer needed. Destroy
+invalidates the handle and intentionally stops its future callbacks, so do not
+destroy while loading or displaying when you still require the terminal event.
+Use `is_interstitial_placement_capped(placement)` before presenting a
+placement-driven entry point.
+
+## Rewarded ads
+
+```lua
+levelplay.load_rewarded_ad(rewarded)
+
+local placement = "Default"
+if levelplay.is_rewarded_ad_ready(rewarded)
+    and not levelplay.is_rewarded_placement_capped(placement) then
+    levelplay.show_rewarded_ad(rewarded, placement)
+end
+```
+
+Grant the reward when the callback receives `MSG_REWARDED` with
+`EVENT_AD_REWARDED`. The message includes the ad `handle` and reward data when
+supplied by the SDK. `get_reward(handle, placement)` can inspect the dashboard
+reward before showing. Never destroy a displayed rewarded object before its
+reward and close callbacks; destruction invalidates the handle and stops future
+callbacks.
+
+## Banner ads
+
+```lua
+local banner = levelplay.create_banner_ad(BANNER_AD_UNIT_ID, {
+    size = levelplay.BANNER_SIZE_ADAPTIVE,
+    position = levelplay.BANNER_POSITION_BOTTOM,
+    placement = "DefaultBanner",
+    respect_safe_area = true,
+})
+
+levelplay.load_banner_ad(banner)
+```
+
+The native banner view is visible by default, so loading also displays it.
+`hide_banner_ad()` preserves the banner for later display and
+`show_banner_ad()` reveals it again. `pause_banner_auto_refresh()` and
+`resume_banner_auto_refresh()` control refresh without changing visibility.
+`destroy_banner_ad()` removes the native view and invalidates the handle.
+
+## Callback contract
+
+The callback signature is:
+
+```lua
+function(self, message_id, message)
+```
+
+`message_id` identifies initialization, interstitial, rewarded, banner, or tracking. Every asynchronous SDK message contains `message.event`. Events emitted by an existing ad object also contain `message.handle`, which lets one callback route events from multiple ad-unit objects; a validation error raised before creation succeeds has no handle.
+
+Failure events include `error_code` and `error_message`; iOS can additionally supply `error_domain`. Successful ad events can include ad-unit, placement, network instance, revenue, auction, creative, and the flat size fields `ad_width`, `ad_height`, `ad_size_description`, and `ad_size_is_adaptive`. A rewarded event uses `reward_name` and `reward_amount`. iOS can additionally supply `conversion_value`. Check the event constant before reading optional fields.
+
+See [`example/callback.lua`](https://github.com/defold/extension-levelplay/blob/main/example/callback.lua) for complete routing and [`example/main.gui_script`](https://github.com/defold/extension-levelplay/blob/main/example/main.gui_script) for the full lifecycle.
+
+## Migration notes
+
+This extension has no compatibility layer for the retired singleton API. Migrate to per-ad-unit objects and explicit loads. The official guides explain the corresponding SDK changes:
+
+- [Migrate to SDK 9.0](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/migrate-to-9-0-0)
+- [Migrate initialization](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/migrate-to-init-api)
+- [SDK 9 API changes](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/9-0-0-api-changes)
+- [Maven Central migration](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/maven-central-migration-guide)
+- [Migrate Unity Ads to LevelPlay](https://docs.unity.com/en-us/grow/levelplay/sdk/unity/migrate-from-unity-ads-to-levelplay)
+
+## Source
+
+Source code and releases are available at [github.com/defold/extension-levelplay](https://github.com/defold/extension-levelplay).

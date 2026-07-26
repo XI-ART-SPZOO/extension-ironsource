@@ -1,7 +1,24 @@
-name: Build with bob
+name: Build LevelPlay example with Bob
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check generated manifests
+        run: |
+          python3 -B updater/android.py check
+          python3 -B updater/ios.py check
+      - name: Run migration contract tests
+        run: python3 -B -m unittest discover -s tests -v
+
   build:
-    uses: defold/github-actions-common/.github/workflows/bob.yml@master
+    needs: verify
+    uses: defold/github-actions-common/.github/workflows/bob.yml@db89d33df00ba043930ac83b2ab05ca9ca5f3ff8
+    with:
+      bob_jar_url: https://github.com/defold/defold/releases/download/1.13.1-beta/bob.jar
+      build_server: https://build-stage.defold.com

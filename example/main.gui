@@ -244,6 +244,31 @@ nodes {
   template_node_child: true
 }
 nodes {
+  position {
+    x: 360.0
+    y: 1185.0
+  }
+  size {
+    x: 700.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Not initialized"
+  font: "larryfont"
+  id: "status"
+  outline {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  shadow {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+  inherit_alpha: true
+}
+nodes {
   size {
     x: 200.0
     y: 100.0
@@ -260,7 +285,7 @@ nodes {
     y: 1140.0
   }
   type: TYPE_TEMPLATE
-  id: "init"
+  id: "initialize"
   parent: "main_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -271,8 +296,8 @@ nodes {
     y: 50.0
   }
   type: TYPE_BOX
-  id: "init/larrybutton"
-  parent: "init"
+  id: "initialize/larrybutton"
+  parent: "initialize"
   overridden_fields: 4
   template_node_child: true
 }
@@ -282,10 +307,10 @@ nodes {
     y: 40.0
   }
   type: TYPE_TEXT
-  text: "Init\n"
+  text: "Initialize\n"
   ""
-  id: "init/larrylabel"
-  parent: "init/larrybutton"
+  id: "initialize/larrylabel"
+  parent: "initialize/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -369,7 +394,7 @@ nodes {
     y: 947.0
   }
   type: TYPE_TEMPLATE
-  id: "auto_test"
+  id: "sdk_version"
   parent: "main_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -380,8 +405,8 @@ nodes {
     y: 50.0
   }
   type: TYPE_BOX
-  id: "auto_test/larrybutton"
-  parent: "auto_test"
+  id: "sdk_version/larrybutton"
+  parent: "sdk_version"
   overridden_fields: 4
   template_node_child: true
 }
@@ -391,9 +416,9 @@ nodes {
     y: 40.0
   }
   type: TYPE_TEXT
-  text: "Auto Test"
-  id: "auto_test/larrylabel"
-  parent: "auto_test/larrybutton"
+  text: "SDK Version"
+  id: "sdk_version/larrylabel"
+  parent: "sdk_version/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -405,7 +430,7 @@ nodes {
     y: 1140.0
   }
   type: TYPE_TEMPLATE
-  id: "load_consent"
+  id: "tracking_status"
   parent: "main_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -419,8 +444,8 @@ nodes {
     y: 100.0
   }
   type: TYPE_BOX
-  id: "load_consent/larrybutton"
-  parent: "load_consent"
+  id: "tracking_status/larrybutton"
+  parent: "tracking_status"
   overridden_fields: 1
   overridden_fields: 4
   template_node_child: true
@@ -431,10 +456,9 @@ nodes {
     y: 40.0
   }
   type: TYPE_TEXT
-  text: "load consent\n"
-  "ios 14+ only"
-  id: "load_consent/larrylabel"
-  parent: "load_consent/larrybutton"
+  text: "Tracking Status"
+  id: "tracking_status/larrylabel"
+  parent: "tracking_status/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -446,7 +470,7 @@ nodes {
     y: 997.0
   }
   type: TYPE_TEMPLATE
-  id: "show_consent"
+  id: "request_tracking"
   parent: "main_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -460,8 +484,8 @@ nodes {
     y: 100.0
   }
   type: TYPE_BOX
-  id: "show_consent/larrybutton"
-  parent: "show_consent"
+  id: "request_tracking/larrybutton"
+  parent: "request_tracking"
   overridden_fields: 1
   overridden_fields: 4
   template_node_child: true
@@ -472,10 +496,45 @@ nodes {
     y: 40.0
   }
   type: TYPE_TEXT
-  text: "show consent\n"
-  "ios 14+ only"
-  id: "show_consent/larrylabel"
-  parent: "show_consent/larrybutton"
+  text: "Request Tracking"
+  id: "request_tracking/larrylabel"
+  parent: "request_tracking/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 379.0
+    y: 932.0
+  }
+  type: TYPE_TEMPLATE
+  id: "dynamic_user_id"
+  parent: "main_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 260.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "dynamic_user_id/larrybutton"
+  parent: "dynamic_user_id"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 240.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Set Dynamic ID"
+  id: "dynamic_user_id/larrylabel"
+  parent: "dynamic_user_id/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -499,6 +558,42 @@ nodes {
   position {
     x: 121.0
     y: 1140.0
+  }
+  type: TYPE_TEMPLATE
+  id: "create_interstitial"
+  parent: "interstitial_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "create_interstitial/larrybutton"
+  parent: "create_interstitial"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Create"
+  id: "create_interstitial/larrylabel"
+  parent: "create_interstitial/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 121.0
+    y: 1077.0
   }
   type: TYPE_TEMPLATE
   id: "load_interstitial"
@@ -534,46 +629,10 @@ nodes {
 nodes {
   position {
     x: 121.0
-    y: 1077.0
-  }
-  type: TYPE_TEMPLATE
-  id: "is_interstitial_ready"
-  parent: "interstitial_page"
-  inherit_alpha: true
-  template: "/dirtylarry/button.gui"
-}
-nodes {
-  size {
-    x: 220.0
-    y: 50.0
-  }
-  type: TYPE_BOX
-  id: "is_interstitial_ready/larrybutton"
-  parent: "is_interstitial_ready"
-  overridden_fields: 4
-  template_node_child: true
-}
-nodes {
-  size {
-    x: 220.0
-    y: 40.0
-  }
-  type: TYPE_TEXT
-  text: "Is Ready"
-  id: "is_interstitial_ready/larrylabel"
-  parent: "is_interstitial_ready/larrybutton"
-  overridden_fields: 3
-  overridden_fields: 4
-  overridden_fields: 8
-  template_node_child: true
-}
-nodes {
-  position {
-    x: 121.0
     y: 1015.0
   }
   type: TYPE_TEMPLATE
-  id: "get_interstitial_placement_info"
+  id: "interstitial_ready"
   parent: "interstitial_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -584,8 +643,8 @@ nodes {
     y: 50.0
   }
   type: TYPE_BOX
-  id: "get_interstitial_placement_info/larrybutton"
-  parent: "get_interstitial_placement_info"
+  id: "interstitial_ready/larrybutton"
+  parent: "interstitial_ready"
   overridden_fields: 4
   template_node_child: true
 }
@@ -598,9 +657,9 @@ nodes {
     y: 40.0
   }
   type: TYPE_TEXT
-  text: "get placement"
-  id: "get_interstitial_placement_info/larrylabel"
-  parent: "get_interstitial_placement_info/larrybutton"
+  text: "Is Ready"
+  id: "interstitial_ready/larrylabel"
+  parent: "interstitial_ready/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -612,7 +671,7 @@ nodes {
     y: 952.0
   }
   type: TYPE_TEMPLATE
-  id: "is_interstitial_placement_capped"
+  id: "interstitial_capped"
   parent: "interstitial_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -623,8 +682,8 @@ nodes {
     y: 50.0
   }
   type: TYPE_BOX
-  id: "is_interstitial_placement_capped/larrybutton"
-  parent: "is_interstitial_placement_capped"
+  id: "interstitial_capped/larrybutton"
+  parent: "interstitial_capped"
   overridden_fields: 4
   template_node_child: true
 }
@@ -635,8 +694,8 @@ nodes {
   }
   type: TYPE_TEXT
   text: "Is Capped"
-  id: "is_interstitial_placement_capped/larrylabel"
-  parent: "is_interstitial_placement_capped/larrybutton"
+  id: "interstitial_capped/larrylabel"
+  parent: "interstitial_capped/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -680,6 +739,42 @@ nodes {
 }
 nodes {
   position {
+    x: 356.0
+    y: 1077.0
+  }
+  type: TYPE_TEMPLATE
+  id: "destroy_interstitial"
+  parent: "interstitial_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "destroy_interstitial/larrybutton"
+  parent: "destroy_interstitial"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Destroy"
+  id: "destroy_interstitial/larrylabel"
+  parent: "destroy_interstitial/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
     x: -592.0
   }
   size {
@@ -698,7 +793,7 @@ nodes {
     y: 1140.0
   }
   type: TYPE_TEMPLATE
-  id: "should_track_network_state"
+  id: "create_rewarded"
   parent: "rewarded_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -709,8 +804,8 @@ nodes {
     y: 50.0
   }
   type: TYPE_BOX
-  id: "should_track_network_state/larrybutton"
-  parent: "should_track_network_state"
+  id: "create_rewarded/larrybutton"
+  parent: "create_rewarded"
   overridden_fields: 4
   template_node_child: true
 }
@@ -720,9 +815,9 @@ nodes {
     y: 40.0
   }
   type: TYPE_TEXT
-  text: "Track Net"
-  id: "should_track_network_state/larrylabel"
-  parent: "should_track_network_state/larrybutton"
+  text: "Create"
+  id: "create_rewarded/larrylabel"
+  parent: "create_rewarded/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -734,7 +829,7 @@ nodes {
     y: 1077.0
   }
   type: TYPE_TEMPLATE
-  id: "is_rewarded_video_available"
+  id: "load_rewarded"
   parent: "rewarded_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -745,8 +840,8 @@ nodes {
     y: 50.0
   }
   type: TYPE_BOX
-  id: "is_rewarded_video_available/larrybutton"
-  parent: "is_rewarded_video_available"
+  id: "load_rewarded/larrybutton"
+  parent: "load_rewarded"
   overridden_fields: 4
   template_node_child: true
 }
@@ -759,9 +854,9 @@ nodes {
     y: 40.0
   }
   type: TYPE_TEXT
-  text: "Is Available"
-  id: "is_rewarded_video_available/larrylabel"
-  parent: "is_rewarded_video_available/larrybutton"
+  text: "Load"
+  id: "load_rewarded/larrylabel"
+  parent: "load_rewarded/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
@@ -773,7 +868,7 @@ nodes {
     y: 1015.0
   }
   type: TYPE_TEMPLATE
-  id: "show_rewarded_video"
+  id: "rewarded_ready"
   parent: "rewarded_page"
   inherit_alpha: true
   template: "/dirtylarry/button.gui"
@@ -784,8 +879,122 @@ nodes {
     y: 50.0
   }
   type: TYPE_BOX
-  id: "show_rewarded_video/larrybutton"
-  parent: "show_rewarded_video"
+  id: "rewarded_ready/larrybutton"
+  parent: "rewarded_ready"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  scale {
+    x: 0.9
+  }
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Is Ready"
+  id: "rewarded_ready/larrylabel"
+  parent: "rewarded_ready/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 121.0
+    y: 952.0
+  }
+  type: TYPE_TEMPLATE
+  id: "rewarded_capped"
+  parent: "rewarded_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "rewarded_capped/larrybutton"
+  parent: "rewarded_capped"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  scale {
+    x: 0.9
+  }
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Is Capped"
+  id: "rewarded_capped/larrylabel"
+  parent: "rewarded_capped/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 356.0
+    y: 1140.0
+  }
+  type: TYPE_TEMPLATE
+  id: "get_reward"
+  parent: "rewarded_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "get_reward/larrybutton"
+  parent: "get_reward"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Get Reward"
+  id: "get_reward/larrylabel"
+  parent: "get_reward/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 356.0
+    y: 1075.0
+  }
+  type: TYPE_TEMPLATE
+  id: "show_rewarded"
+  parent: "rewarded_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "show_rewarded/larrybutton"
+  parent: "show_rewarded"
   overridden_fields: 4
   template_node_child: true
 }
@@ -799,122 +1008,8 @@ nodes {
   }
   type: TYPE_TEXT
   text: "Show"
-  id: "show_rewarded_video/larrylabel"
-  parent: "show_rewarded_video/larrybutton"
-  overridden_fields: 3
-  overridden_fields: 4
-  overridden_fields: 8
-  template_node_child: true
-}
-nodes {
-  position {
-    x: 121.0
-    y: 952.0
-  }
-  type: TYPE_TEMPLATE
-  id: "get_rewarded_video_placement_info"
-  parent: "rewarded_page"
-  inherit_alpha: true
-  template: "/dirtylarry/button.gui"
-}
-nodes {
-  size {
-    x: 220.0
-    y: 50.0
-  }
-  type: TYPE_BOX
-  id: "get_rewarded_video_placement_info/larrybutton"
-  parent: "get_rewarded_video_placement_info"
-  overridden_fields: 4
-  template_node_child: true
-}
-nodes {
-  scale {
-    x: 0.9
-  }
-  size {
-    x: 220.0
-    y: 40.0
-  }
-  type: TYPE_TEXT
-  text: "get placement"
-  id: "get_rewarded_video_placement_info/larrylabel"
-  parent: "get_rewarded_video_placement_info/larrybutton"
-  overridden_fields: 3
-  overridden_fields: 4
-  overridden_fields: 8
-  template_node_child: true
-}
-nodes {
-  position {
-    x: 356.0
-    y: 1140.0
-  }
-  type: TYPE_TEMPLATE
-  id: "is_rewarded_video_placement_capped"
-  parent: "rewarded_page"
-  inherit_alpha: true
-  template: "/dirtylarry/button.gui"
-}
-nodes {
-  size {
-    x: 220.0
-    y: 50.0
-  }
-  type: TYPE_BOX
-  id: "is_rewarded_video_placement_capped/larrybutton"
-  parent: "is_rewarded_video_placement_capped"
-  overridden_fields: 4
-  template_node_child: true
-}
-nodes {
-  size {
-    x: 220.0
-    y: 40.0
-  }
-  type: TYPE_TEXT
-  text: "Is Capped"
-  id: "is_rewarded_video_placement_capped/larrylabel"
-  parent: "is_rewarded_video_placement_capped/larrybutton"
-  overridden_fields: 3
-  overridden_fields: 4
-  overridden_fields: 8
-  template_node_child: true
-}
-nodes {
-  position {
-    x: 356.0
-    y: 1075.0
-  }
-  type: TYPE_TEMPLATE
-  id: "set_dynamic_user_id"
-  parent: "rewarded_page"
-  inherit_alpha: true
-  template: "/dirtylarry/button.gui"
-}
-nodes {
-  size {
-    x: 220.0
-    y: 50.0
-  }
-  type: TYPE_BOX
-  id: "set_dynamic_user_id/larrybutton"
-  parent: "set_dynamic_user_id"
-  overridden_fields: 4
-  template_node_child: true
-}
-nodes {
-  scale {
-    x: 0.9
-  }
-  size {
-    x: 220.0
-    y: 40.0
-  }
-  type: TYPE_TEXT
-  text: "Dyn. user id"
-  id: "set_dynamic_user_id/larrylabel"
-  parent: "set_dynamic_user_id/larrybutton"
+  id: "show_rewarded/larrylabel"
+  parent: "show_rewarded/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8

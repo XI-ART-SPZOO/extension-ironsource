@@ -1,118 +1,49 @@
 local log = require("example.log")
 
 local M = {}
+local event_handler
 
-local function callback_logger(self, message_id, message)
-    print("cbk: "..log.msg(message_id).." "..log.event(message.event))
-    local msg = log.get_table_as_str(message)
-    if msg then
-        print("msg: "..msg)
+local function restore_audio_after_fullscreen_ad(message_id, event)
+    local fullscreen = message_id == levelplay.MSG_INTERSTITIAL or message_id == levelplay.MSG_REWARDED
+    local finished = event == levelplay.EVENT_AD_CLOSED or event == levelplay.EVENT_AD_DISPLAY_FAILED
+    if fullscreen and finished then
+        sound.set_group_gain("master", 1)
     end
 end
 
-local function ironsource_callback(self, message_id, message)
-    callback_logger(self, message_id, message)
-    if message_id == ironsource.MSG_INIT then
-        if message.event == ironsource.EVENT_INIT_COMPLETE then
-            -- ironSource SDK is initialized
-            -- massage{}
-        end
-    elseif message_id == ironsource.MSG_REWARDED then
-        if message.event == ironsource.EVENT_AD_AVAILABLE then
-            -- Indicates that there's an available ad. 
-            -- The adInfo object includes information about the ad that was loaded successfully
-            -- massage{AdInfo}
-        elseif message.event == ironsource.EVENT_AD_UNAVAILABLE then
-            -- Indicates that no ads are available to be displayed
-            -- massage{}
-        elseif message.event == ironsource.EVENT_AD_OPENED then
-            -- The Rewarded Video ad view has opened. Your activity will loose focus
-            -- massage{AdInfo}
-        elseif message.event == ironsource.EVENT_AD_CLOSED then
-            sound.set_group_gain("master", 1)
-            -- The Rewarded Video ad view is about to be closed. Your activity will regain its focus
-            -- massage{AdInfo}
-        elseif message.event == ironsource.EVENT_AD_REWARDED then
-            -- The user completed to watch the video, and should be rewarded.
-            -- The placement parameter will include the reward data.
-            -- When using server-to-server callbacks, you may ignore this event and wait for the ironSource server callback
-            -- massage{AdInfo, Placement}
-        elseif message.event == ironsource.EVENT_AD_SHOW_FAILED then
-            -- The rewarded video ad was failed to show
-            -- massage{AdInfo, IronSourceError}
-        elseif message.event == ironsource.EVENT_AD_CLICKED then
-            -- Invoked when the video ad was clicked.
-            -- This callback is not supported by all networks, and we recommend using it 
-            -- only if it's supported by all networks you included in your build
-            -- massage{AdInfo, Placement}
-        end
-    elseif message_id == ironsource.MSG_INTERSTITIAL then
-        if message.event == ironsource.EVENT_AD_READY then
-            -- Invoked when the interstitial ad was loaded successfully.
-            -- AdInfo parameter includes information about the loaded ad
-            -- massage{AdInfo}
-        elseif message.event == ironsource.EVENT_AD_LOAD_FAILED then
-            -- Indicates that the ad failed to be loaded
-            -- massage{IronSourceError}
-        elseif message.event == ironsource.EVENT_AD_OPENED then
-            -- Invoked when the Interstitial Ad Unit has opened, and user left the application screen.
-            -- This is the impression indication.
-            -- massage{AdInfo}
-        elseif message.event == ironsource.EVENT_AD_CLOSED then
-            sound.set_group_gain("master", 1)
-            -- Invoked when the interstitial ad closed and the user went back to the application screen.
-            -- massage{AdInfo}
-        elseif message.event == ironsource.EVENT_AD_SHOW_FAILED then
-            -- Invoked when the ad failed to show
-            -- massage{AdInfo, IronSourceError}
-        elseif message.event == ironsource.EVENT_AD_CLICKED then
-            -- Invoked when end user clicked on the interstitial ad
-            -- massage{AdInfo}
-        elseif message.event == ironsource.EVENT_AD_SHOW_SUCCEEDED then
-            -- Invoked before the interstitial ad was opened, and before the InterstitialOnAdOpenedEvent is reported.
-            -- This callback is not supported by all networks, and we recommend using it only if
-            -- it's supported by all networks you included in your build.
-            -- massage{AdInfo}
-        end
-    elseif message_id == ironsource.MSG_CONSENT then
-        if message.event == ironsource.EVENT_CONSENT_LOADED then
-            -- Consent View was loaded successfully
-            -- massage.consent_view_type
-        elseif message.event == ironsource.EVENT_CONSENT_SHOWN then
-            -- Consent view was displayed successfully 
-            -- massage.consent_view_type
-        elseif message.event == ironsource.EVENT_CONSENT_LOAD_FAILED then
-            -- Consent view was failed to load
-            -- massage.consent_view_type, massage.error_code, massage.error_message
-            ironsource.request_idfa()
-        elseif message.event == ironsource.EVENT_CONSENT_SHOW_FAILED then
-            -- Consent view was not displayed, due to error
-            -- massage.consent_view_type, massage.error_code, massage.error_message
-            ironsource.request_idfa()
-        elseif message.event == ironsource.EVENT_CONSENT_ACCEPTED then
-            -- The user pressed the Settings or Next buttons
-            -- massage.consent_view_type
-            ironsource.request_idfa()
-        elseif message.event == ironsource.EVENT_CONSENT_DISMISSED then
-            -- The user dismiss consent
-            -- massage.consent_view_type
-            ironsource.request_idfa()
-        end
-    elseif message_id == ironsource.MSG_IDFA then
-        if message.event == ironsource.EVENT_STATUS_AUTHORIZED then
-            -- ATTrackingManagerAuthorizationStatusAuthorized
-        elseif message.event == ironsource.EVENT_STATUS_DENIED then
-            -- ATTrackingManagerAuthorizationStatusDenied
-        elseif message.event == ironsource.EVENT_STATUS_NOT_DETERMINED then
-            -- ATTrackingManagerAuthorizationStatusNotDetermined
-        elseif message.event == ironsource.EVENT_STATUS_RESTRICTED then
-            -- ATTrackingManagerAuthorizationStatusRestricted
-        end
+local function levelplay_callback(self, message_id, message)
+    print(("callback: %s %s"):format(
+        log.message_name(message_id) or tostring(message_id),
+        log.event_name(message.event) or tostring(message.event)
+    ))
+
+    local details = log.table_to_string(message, { event = true })
+    if details then
+        print("message: " .. details)
+    end
+
+    if message_id == levelplay.MSG_REWARDED and message.event == levelplay.EVENT_AD_REWARDED then
+        print(("reward: %s x %s"):format(
+            tostring(message.reward_name),
+            tostring(message.reward_amount)
+        ))
+    end
+
+    restore_audio_after_fullscreen_ad(message_id, message.event)
+
+    if event_handler then
+        event_handler(self, message_id, message)
     end
 end
 
-function M.set()
-    ironsource.set_callback(ironsource_callback)
+function M.set(handler)
+    event_handler = handler
+    levelplay.set_callback(levelplay_callback)
+end
+
+function M.clear()
+    event_handler = nil
+    levelplay.set_callback(nil)
 end
 
 return M
