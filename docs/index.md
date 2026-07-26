@@ -196,6 +196,49 @@ session. The object is bound to the **ad-unit ID** supplied to its
 `create_*_ad()` function. It owns that ad unit's listener, loading state, and
 handle.
 
+Creation parameters are not per load or show. They remain attached to the
+returned handle for its entire lifetime:
+
+| Parameter | Applies to | When supplied | Lifetime |
+| --- | --- | --- | --- |
+| `ad_unit_id` | All formats | First argument to `create_*_ad()` | Fixed for the object |
+| `bid_floor` | All formats | Second argument for interstitial/rewarded; banner `options` field | Fixed for the object and every load it performs |
+| `size`, `position`, `respect_safe_area` | Banner | Banner `options` fields | Fixed for the banner view |
+| `placement` | Banner | Banner `options` field | Fixed for the banner and used for reporting |
+| `placement` | Interstitial/rewarded | Optional argument to `show_*_ad()` | Selected separately for each impression |
+
+`bid_floor` is the minimum eCPM in USD. Omit it to use the dashboard and
+mediation defaults. If an ad-unit ID, bid floor, or banner creation option must
+change, destroy the handle and create a new object. Do not recreate an object
+merely to load or show another impression with the same configuration.
+
+For example, the optional bid floor is a positional argument for fullscreen
+objects but a field in the banner options table:
+
+```lua
+local interstitial = levelplay.create_interstitial_ad(
+    INTERSTITIAL_AD_UNIT_ID,
+    1.25 -- Minimum eCPM in USD for every load by this object.
+)
+
+local rewarded = levelplay.create_rewarded_ad(
+    REWARDED_AD_UNIT_ID,
+    1.25
+)
+
+local banner = levelplay.create_banner_ad(BANNER_AD_UNIT_ID, {
+    size = levelplay.BANNER_SIZE_ADAPTIVE,
+    position = levelplay.BANNER_POSITION_BOTTOM,
+    placement = "HomeScreen", -- Reporting placement for this banner object.
+    bid_floor = 1.25,
+    respect_safe_area = true,
+})
+```
+
+See Unity's
+[price-floor documentation](https://docs.unity.com/grow/levelplay/sdk/unity/additional-settings)
+for its current auction behavior.
+
 A **placement** is not an object and is not created by the extension. It is an
 optional dashboard name passed when showing a ready fullscreen ad. Placements
 let the same ad-unit object report different presentation points and apply

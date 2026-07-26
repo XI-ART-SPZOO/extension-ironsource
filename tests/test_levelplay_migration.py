@@ -793,6 +793,10 @@ class LevelPlayMigrationTest(unittest.TestCase):
         )
         self.assertIn("load the same handle again", manual)
         self.assertIn("Do not recreate the object for every impression", manual)
+        self.assertIn("Creation parameters are not per load or show", manual)
+        self.assertIn("`bid_floor` is the minimum eCPM in USD", manual)
+        self.assertIn("destroy the handle and create a new object", manual)
+        self.assertIn("Selected separately for each impression", manual)
         self.assertRegex(
             manual,
             r"The repository example\s+automatically creates",
@@ -804,8 +808,9 @@ class LevelPlayMigrationTest(unittest.TestCase):
             "multiple load/show cycles with the same ad-unit ID",
             api,
         )
-        self.assertIn("already visible banner is an idempotent no-op", api)
-        self.assertIn("does not reposition it", api)
+        self.assertIn("Optional minimum eCPM in USD", api)
+        self.assertIn("fixed for the object's lifetime", api)
+        self.assertIn("selected separately on every show", api)
         self.assertIn(
             "call this again on the same handle instead of creating another object",
             api,

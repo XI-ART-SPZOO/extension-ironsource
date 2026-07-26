@@ -249,7 +249,7 @@
 
   - name: create_interstitial_ad
     type: function
-    desc: Creates a reusable interstitial ad object after successful initialization. Create it once, then use the returned handle for multiple load/show cycles with the same ad-unit ID.
+    desc: Creates a reusable interstitial ad object after successful initialization. Its ad-unit ID and optional bid floor are fixed for the object's lifetime. Create it once, then use the returned handle for multiple load/show cycles with the same ad-unit ID and creation configuration.
     parameters:
     - name: ad_unit_id
       type: string
@@ -257,7 +257,7 @@
     - name: bid_floor
       type: number
       optional: true
-      desc: Optional bid-floor value.
+      desc: Optional minimum eCPM in USD. It applies to every load by this object; changing it requires destroying the handle and creating a new object.
     returns:
     - name: handle
       type: number
@@ -290,7 +290,7 @@
 
   - name: show_interstitial_ad
     type: function
-    desc: Shows one loaded interstitial impression. The optional placement is a dashboard presentation point, not an ad object.
+    desc: Shows one loaded interstitial impression. The optional placement is a dashboard presentation point, not an ad object, and can be selected separately on every show.
     parameters:
     - name: handle
       type: number
@@ -312,7 +312,7 @@
 
   - name: create_rewarded_ad
     type: function
-    desc: Creates a reusable rewarded ad object after successful initialization. Create it once, then use the returned handle for multiple load/show cycles with the same ad-unit ID.
+    desc: Creates a reusable rewarded ad object after successful initialization. Its ad-unit ID and optional bid floor are fixed for the object's lifetime. Create it once, then use the returned handle for multiple load/show cycles with the same ad-unit ID and creation configuration.
     parameters:
     - name: ad_unit_id
       type: string
@@ -320,7 +320,7 @@
     - name: bid_floor
       type: number
       optional: true
-      desc: Optional bid-floor value.
+      desc: Optional minimum eCPM in USD. It applies to every load by this object; changing it requires destroying the handle and creating a new object.
     returns:
     - name: handle
       type: number
@@ -353,7 +353,7 @@
 
   - name: show_rewarded_ad
     type: function
-    desc: Shows one loaded rewarded impression. The optional placement is a dashboard presentation point, not an ad object.
+    desc: Shows one loaded rewarded impression. The optional placement is a dashboard presentation point, not an ad object, and can be selected separately on every show.
     parameters:
     - name: handle
       type: number
@@ -394,7 +394,7 @@
 
   - name: create_banner_ad
     type: function
-    desc: Creates a reusable banner ad view after successful initialization. Create it once, then load, hide, show, and auto-refresh the same handle until it is permanently destroyed.
+    desc: Creates a reusable banner ad view after successful initialization. Its ad-unit ID and all options are fixed for the view's lifetime. Create it once, then load, hide, show, and auto-refresh the same handle until it is permanently destroyed.
     parameters:
     - name: ad_unit_id
       type: string
@@ -402,7 +402,7 @@
     - name: options
       type: table
       optional: true
-      desc: Banner configuration.
+      desc: Creation-time banner configuration. These fields apply to every load and show; changing one requires destroying the handle and creating a new banner.
       fields:
       - name: size
         type: number
@@ -415,13 +415,15 @@
       - name: placement
         type: string
         optional: true
+        desc: Dashboard placement used for reporting by this banner object.
       - name: bid_floor
         type: number
         optional: true
+        desc: Minimum eCPM in USD applied to every load by this banner object.
       - name: respect_safe_area
         type: boolean
         optional: true
-        desc: Defaults to true.
+        desc: Whether the banner avoids system bars and display cutouts. Defaults to true.
     returns:
     - name: handle
       type: number
