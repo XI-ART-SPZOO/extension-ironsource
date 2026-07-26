@@ -714,6 +714,72 @@ class LevelPlayMigrationTest(unittest.TestCase):
             + "\n".join(f"  - {item}" for item in invalid),
         )
 
+    def test_example_uses_dirty_larry_test_ui(self) -> None:
+        gui_script = self._read_required(ROOT / "example/main.gui_script")
+        gui_scene = self._read_required(ROOT / "example/main.gui")
+        ui_helper = self._read_required(ROOT / "example/ui.lua")
+
+        self.assertIn('require("example.ui")', gui_script)
+        self.assertIn('require("dirtylarry.dirtylarry")', gui_script)
+        self.assertIn("self.ui = ui.fill_tree(DATA, actions)", gui_script)
+        self.assertIn("dirtylarry:button(el.name, action_id, action", gui_script)
+        self.assertIn("function M.fill_tree(data, actions)", ui_helper)
+        self.assertIn('template: "/dirtylarry/button.gui"', gui_scene)
+
+        self.assertNotIn(
+            "gui.new_box_node",
+            gui_script,
+            "The test example must use Dirty Larry button templates, not a "
+            "replacement runtime UI",
+        )
+        self.assertNotIn("gui.new_text_node", gui_script)
+
+        expected_buttons = {
+            "main",
+            "interstitial",
+            "rewarded",
+            "banner",
+            "initialize",
+            "sdk_version",
+            "validate",
+            "test_suite",
+            "tracking_status",
+            "request_tracking",
+            "dynamic_user_id",
+            "create_interstitial",
+            "load_interstitial",
+            "interstitial_ready",
+            "interstitial_capped",
+            "show_interstitial",
+            "destroy_interstitial",
+            "create_rewarded",
+            "load_rewarded",
+            "rewarded_ready",
+            "rewarded_capped",
+            "get_reward",
+            "show_rewarded",
+            "destroy_rewarded",
+            "create_banner",
+            "load_banner",
+            "show_banner",
+            "hide_banner",
+            "pause_banner",
+            "resume_banner",
+            "destroy_banner",
+        }
+        template_ids = set()
+        for node_block in re.split(r"(?m)^nodes \{\s*$", gui_scene)[1:]:
+            if 'template: "/dirtylarry/button.gui"' not in node_block:
+                continue
+            node_id = re.search(r'(?m)^\s*id: "([^"]+)"\s*$', node_block)
+            self.assertIsNotNone(node_id, "Dirty Larry template node has no ID")
+            template_ids.add(node_id.group(1))
+        self.assertSetEqual(
+            expected_buttons,
+            template_ids,
+            "Dirty Larry controls and the LevelPlay test surface differ",
+        )
+
     def test_att_order_banner_visibility_and_ios_lifetime_guards(self) -> None:
         example = self._read_required(ROOT / "example/main.gui_script")
         self.assertIn(

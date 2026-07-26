@@ -458,16 +458,18 @@ nodes {
   type: TYPE_TEXT
   text: "Tracking Status"
   id: "tracking_status/larrylabel"
+  line_break: true
   parent: "tracking_status/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
+  overridden_fields: 18
   template_node_child: true
 }
 nodes {
   position {
     x: 379.0
-    y: 997.0
+    y: 1024.0
   }
   type: TYPE_TEMPLATE
   id: "request_tracking"
@@ -498,10 +500,12 @@ nodes {
   type: TYPE_TEXT
   text: "Request Tracking"
   id: "request_tracking/larrylabel"
+  line_break: true
   parent: "request_tracking/larrybutton"
   overridden_fields: 3
   overridden_fields: 4
   overridden_fields: 8
+  overridden_fields: 18
   template_node_child: true
 }
 nodes {
@@ -1017,6 +1021,42 @@ nodes {
 }
 nodes {
   position {
+    x: 356.0
+    y: 1012.0
+  }
+  type: TYPE_TEMPLATE
+  id: "destroy_rewarded"
+  parent: "rewarded_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "destroy_rewarded/larrybutton"
+  parent: "destroy_rewarded"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Destroy"
+  id: "destroy_rewarded/larrylabel"
+  parent: "destroy_rewarded/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
     x: -1276.0
   }
   size {
@@ -1031,29 +1071,255 @@ nodes {
 }
 nodes {
   position {
-    x: 361.0
-    y: 1072.0
+    x: 121.0
+    y: 1140.0
   }
-  size {
-    x: 400.0
-    y: 100.0
-  }
-  type: TYPE_TEXT
-  text: "Not implemented yet"
-  font: "larryfont"
-  id: "text"
-  outline {
-    x: 1.0
-    y: 1.0
-    z: 1.0
-  }
-  shadow {
-    x: 1.0
-    y: 1.0
-    z: 1.0
-  }
+  type: TYPE_TEMPLATE
+  id: "create_banner"
   parent: "banner_page"
   inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "create_banner/larrybutton"
+  parent: "create_banner"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Create"
+  id: "create_banner/larrylabel"
+  parent: "create_banner/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 121.0
+    y: 1077.0
+  }
+  type: TYPE_TEMPLATE
+  id: "load_banner"
+  parent: "banner_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "load_banner/larrybutton"
+  parent: "load_banner"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Load"
+  id: "load_banner/larrylabel"
+  parent: "load_banner/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 121.0
+    y: 1014.0
+  }
+  type: TYPE_TEMPLATE
+  id: "show_banner"
+  parent: "banner_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "show_banner/larrybutton"
+  parent: "show_banner"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Show"
+  id: "show_banner/larrylabel"
+  parent: "show_banner/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 121.0
+    y: 951.0
+  }
+  type: TYPE_TEMPLATE
+  id: "hide_banner"
+  parent: "banner_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "hide_banner/larrybutton"
+  parent: "hide_banner"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Hide"
+  id: "hide_banner/larrylabel"
+  parent: "hide_banner/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 356.0
+    y: 1140.0
+  }
+  type: TYPE_TEMPLATE
+  id: "pause_banner"
+  parent: "banner_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "pause_banner/larrybutton"
+  parent: "pause_banner"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Pause Refresh"
+  id: "pause_banner/larrylabel"
+  parent: "pause_banner/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 356.0
+    y: 1077.0
+  }
+  type: TYPE_TEMPLATE
+  id: "resume_banner"
+  parent: "banner_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "resume_banner/larrybutton"
+  parent: "resume_banner"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Resume Refresh"
+  id: "resume_banner/larrylabel"
+  parent: "resume_banner/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
+}
+nodes {
+  position {
+    x: 356.0
+    y: 1014.0
+  }
+  type: TYPE_TEMPLATE
+  id: "destroy_banner"
+  parent: "banner_page"
+  inherit_alpha: true
+  template: "/dirtylarry/button.gui"
+}
+nodes {
+  size {
+    x: 220.0
+    y: 50.0
+  }
+  type: TYPE_BOX
+  id: "destroy_banner/larrybutton"
+  parent: "destroy_banner"
+  overridden_fields: 4
+  template_node_child: true
+}
+nodes {
+  size {
+    x: 220.0
+    y: 40.0
+  }
+  type: TYPE_TEXT
+  text: "Destroy"
+  id: "destroy_banner/larrylabel"
+  parent: "destroy_banner/larrybutton"
+  overridden_fields: 3
+  overridden_fields: 4
+  overridden_fields: 8
+  template_node_child: true
 }
 material: "/builtins/materials/gui.material"
 adjust_reference: ADJUST_REFERENCE_PARENT
