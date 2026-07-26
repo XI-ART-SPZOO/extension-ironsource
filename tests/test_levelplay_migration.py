@@ -780,6 +780,39 @@ class LevelPlayMigrationTest(unittest.TestCase):
             "Dirty Larry controls and the LevelPlay test surface differ",
         )
 
+    def test_docs_explain_reusable_ad_object_lifecycle(self) -> None:
+        manual = self._read_required(ROOT / "docs/index.md")
+        api = self._read_required(EXTENSION / "api/levelplay.script_api")
+
+        self.assertIn("### Ad objects, ad units, and placements", manual)
+        self.assertIn("Create an ad object once", manual)
+        self.assertIn("A **placement** is not an object", manual)
+        self.assertRegex(
+            manual,
+            r"One\s+successful load provides one fullscreen impression",
+        )
+        self.assertIn("load the same handle again", manual)
+        self.assertIn("Do not recreate the object for every impression", manual)
+        self.assertRegex(
+            manual,
+            r"The repository example\s+automatically creates",
+        )
+        self.assertIn("**Create**", manual)
+        self.assertIn("**Destroy**", manual)
+
+        self.assertIn(
+            "multiple load/show cycles with the same ad-unit ID",
+            api,
+        )
+        self.assertIn(
+            "call this again on the same handle instead of creating another object",
+            api,
+        )
+        self.assertIn(
+            "placement is a dashboard presentation point, not an ad object",
+            api,
+        )
+
     def test_att_order_banner_visibility_and_ios_lifetime_guards(self) -> None:
         example = self._read_required(ROOT / "example/main.gui_script")
         self.assertIn(

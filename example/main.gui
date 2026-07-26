@@ -1236,6 +1236,9 @@ nodes {
   template_node_child: true
 }
 nodes {
+  scale {
+    x: 0.8
+  }
   size {
     x: 220.0
     y: 40.0
@@ -1272,6 +1275,9 @@ nodes {
   template_node_child: true
 }
 nodes {
+  scale {
+    x: 0.8
+  }
   size {
     x: 220.0
     y: 40.0

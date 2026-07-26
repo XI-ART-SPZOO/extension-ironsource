@@ -189,6 +189,56 @@ levelplay.init(APP_KEY, "example-user")
 
 Initialization reports both success and failure. Do not create or load ad objects merely because `init()` was called.
 
+### Ad objects, ad units, and placements
+
+Create an ad object once after initialization and reuse it throughout the
+session. The object is bound to the **ad-unit ID** supplied to its
+`create_*_ad()` function. It owns that ad unit's listener, loading state, and
+handle.
+
+A **placement** is not an object and is not created by the extension. It is an
+optional dashboard name passed when showing a ready fullscreen ad. Placements
+let the same ad-unit object report different presentation points and apply
+placement-specific rewards, pacing, and capping:
+
+```lua
+levelplay.show_interstitial_ad(interstitial, "LevelComplete")
+levelplay.show_rewarded_ad(rewarded, "DoubleCoins")
+```
+
+Interstitial and rewarded objects support multiple load/show cycles. One
+successful load provides one fullscreen impression, so reload the same object
+after the previous ad closes:
+
+```text
+create once
+  → load
+  → wait for EVENT_AD_LOADED
+  → show once
+  → wait for EVENT_AD_CLOSED
+  → load the same handle again
+  → show again
+```
+
+Do not recreate the object for every impression. Call `destroy_*_ad()` only
+when permanently finished with that object; destruction invalidates its handle
+and a later use requires creating a new object.
+
+Banner objects are also created once. After loading, the native banner
+auto-refreshes. The same handle can be hidden and shown repeatedly without
+recreating or reloading the view.
+
+The repository example automatically creates its default interstitial,
+rewarded, and banner objects after `EVENT_INIT_SUCCEEDED`. Its **Create**
+buttons are mainly there to test creating another object after the corresponding
+**Destroy** button has invalidated the previous handle.
+
+See Unity's reusable-object guidance for
+[interstitial](https://docs.unity.com/en-us/grow/levelplay/sdk/android/interstitial-integration)
+and
+[rewarded](https://docs.unity.com/en-us/grow/levelplay/sdk/android/rewarded-ads-integration)
+ads.
+
 ### Integration Test Suite
 
 The Test Suite is a separate initialization path. Before initialization, set
@@ -214,6 +264,9 @@ if levelplay.is_interstitial_ad_ready(interstitial)
 end
 ```
 
+After `EVENT_AD_CLOSED`, call `load_interstitial_ad(interstitial)` again to
+prepare the next impression. The same object and handle are reused.
+
 Call `destroy_interstitial_ad()` when the object is no longer needed. Destroy
 invalidates the handle and intentionally stops its future callbacks, so do not
 destroy while loading or displaying when you still require the terminal event.
@@ -231,6 +284,10 @@ if levelplay.is_rewarded_ad_ready(rewarded)
     levelplay.show_rewarded_ad(rewarded, placement)
 end
 ```
+
+After the reward and close callbacks have completed, call
+`load_rewarded_ad(rewarded)` again to prepare the next impression. Do not
+recreate the rewarded object after every show.
 
 Grant the reward when the callback receives `MSG_REWARDED` with
 `EVENT_AD_REWARDED`. The message includes the ad `handle` and reward data when

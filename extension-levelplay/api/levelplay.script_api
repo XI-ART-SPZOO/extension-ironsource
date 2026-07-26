@@ -249,7 +249,7 @@
 
   - name: create_interstitial_ad
     type: function
-    desc: Creates an interstitial ad object after successful initialization.
+    desc: Creates a reusable interstitial ad object after successful initialization. Create it once, then use the returned handle for multiple load/show cycles with the same ad-unit ID.
     parameters:
     - name: ad_unit_id
       type: string
@@ -266,14 +266,14 @@
 
   - name: destroy_interstitial_ad
     type: function
-    desc: Releases an interstitial ad object, invalidates its handle, and stops callbacks for it. Do not destroy during load or display when terminal callbacks are still required.
+    desc: Permanently releases an interstitial ad object, invalidates its handle, and stops callbacks for it. Do not destroy between ordinary impressions or during load/display when terminal callbacks are still required.
     parameters:
     - name: handle
       type: number
 
   - name: load_interstitial_ad
     type: function
-    desc: Starts loading an interstitial ad.
+    desc: Loads the next interstitial impression into an existing object. After an impression closes, call this again on the same handle instead of creating another object.
     parameters:
     - name: handle
       type: number
@@ -290,7 +290,7 @@
 
   - name: show_interstitial_ad
     type: function
-    desc: Shows a ready interstitial ad.
+    desc: Shows one loaded interstitial impression. The optional placement is a dashboard presentation point, not an ad object.
     parameters:
     - name: handle
       type: number
@@ -312,7 +312,7 @@
 
   - name: create_rewarded_ad
     type: function
-    desc: Creates a rewarded ad object after successful initialization.
+    desc: Creates a reusable rewarded ad object after successful initialization. Create it once, then use the returned handle for multiple load/show cycles with the same ad-unit ID.
     parameters:
     - name: ad_unit_id
       type: string
@@ -329,14 +329,14 @@
 
   - name: destroy_rewarded_ad
     type: function
-    desc: Releases a rewarded ad object, invalidates its handle, and stops callbacks for it. Never destroy a displayed rewarded ad before its reward and close callbacks are received.
+    desc: Permanently releases a rewarded ad object, invalidates its handle, and stops callbacks for it. Do not destroy between ordinary impressions, and never destroy a displayed rewarded ad before its reward and close callbacks are received.
     parameters:
     - name: handle
       type: number
 
   - name: load_rewarded_ad
     type: function
-    desc: Starts loading a rewarded ad.
+    desc: Loads the next rewarded impression into an existing object. After reward and close callbacks complete, call this again on the same handle instead of creating another object.
     parameters:
     - name: handle
       type: number
@@ -353,7 +353,7 @@
 
   - name: show_rewarded_ad
     type: function
-    desc: Shows a ready rewarded ad.
+    desc: Shows one loaded rewarded impression. The optional placement is a dashboard presentation point, not an ad object.
     parameters:
     - name: handle
       type: number
@@ -394,7 +394,7 @@
 
   - name: create_banner_ad
     type: function
-    desc: Creates a banner ad view after successful initialization.
+    desc: Creates a reusable banner ad view after successful initialization. Create it once, then load, hide, show, and auto-refresh the same handle until it is permanently destroyed.
     parameters:
     - name: ad_unit_id
       type: string
