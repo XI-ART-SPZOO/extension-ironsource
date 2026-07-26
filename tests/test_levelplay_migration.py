@@ -804,6 +804,8 @@ class LevelPlayMigrationTest(unittest.TestCase):
             "multiple load/show cycles with the same ad-unit ID",
             api,
         )
+        self.assertIn("already visible banner is an idempotent no-op", api)
+        self.assertIn("does not reposition it", api)
         self.assertIn(
             "call this again on the same handle instead of creating another object",
             api,
@@ -834,6 +836,13 @@ class LevelPlayMigrationTest(unittest.TestCase):
         )
         self.assertIn("adView.setVisibility(View.VISIBLE)", android)
         self.assertNotIn("adView.setVisibility(View.GONE);\n                    record.adView", android)
+        self.assertIn("record.windowManager.addView", android)
+        self.assertIn("record.windowManager.removeView", android)
+        self.assertIn("if (record.attached && record.layout.isAttachedToWindow())", android)
+        self.assertIn("record.layout.setVisibility(View.GONE)", android)
+        self.assertIn("record.layout.setVisibility(View.VISIBLE)", android)
+        self.assertNotIn("activity.addContentView(adView", android)
+        self.assertNotIn("setOnApplyWindowInsetsListener", android)
 
         ios = self._read_required(EXTENSION / "src/levelplay_ios.mm")
         self.assertIn("ad.hidden = NO;", ios)

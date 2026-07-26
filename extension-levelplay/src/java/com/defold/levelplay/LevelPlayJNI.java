@@ -1,14 +1,13 @@
 package com.defold.levelplay;
 
 import android.app.Activity;
-import android.os.Build;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsets;
-import android.widget.FrameLayout;
+import android.view.WindowManager;
+import android.widget.LinearLayout;
 
 import com.unity3d.mediation.LevelPlay;
 import com.unity3d.mediation.LevelPlayAdError;
@@ -297,13 +296,7 @@ public final class LevelPlayJNI {
                     if (record == null || record.adView == null) {
                         continue;
                     }
-                    record.adView.setBannerListener(null);
-                    record.adView.destroy();
-                    ViewGroup parent = (ViewGroup) record.adView.getParent();
-                    if (parent != null) {
-                        parent.removeView(record.adView);
-                    }
-                    record.adView = null;
+                    destroyBannerView(record);
                 }
             }
         });
@@ -583,18 +576,23 @@ public final class LevelPlayJNI {
                     // can hide it after loading and show it again later.
                     adView.setVisibility(View.VISIBLE);
                     record.adView = adView;
+                    record.windowManager = activity.getWindowManager();
+                    record.layout = new LinearLayout(activity);
+                    record.layout.setOrientation(LinearLayout.VERTICAL);
+                    record.layout.setGravity(Gravity.CENTER_HORIZONTAL);
+                    record.layout.setSystemUiVisibility(
+                            activity.getWindow().getDecorView().getSystemUiVisibility());
+                    ViewGroup.MarginLayoutParams layoutParams =
+                            new ViewGroup.MarginLayoutParams(
+                                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT);
+                    record.layout.addView(adView, layoutParams);
                     banners.put(handle, record);
                     attachBanner(record);
                 } catch (Throwable throwable) {
                     banners.remove(handle);
                     if (record.adView != null) {
-                        record.adView.setBannerListener(null);
-                        record.adView.destroy();
-                        ViewGroup parent = (ViewGroup) record.adView.getParent();
-                        if (parent != null) {
-                            parent.removeView(record.adView);
-                        }
-                        record.adView = null;
+                        destroyBannerView(record);
                     }
                     failure[0] = throwable;
                 }
@@ -632,11 +630,11 @@ public final class LevelPlayJNI {
     }
 
     public void showBanner(final int handle) {
-        setBannerVisibility(handle, View.VISIBLE, "show_banner");
+        setBannerShown(handle, true, "show_banner");
     }
 
     public void hideBanner(final int handle) {
-        setBannerVisibility(handle, View.GONE, "hide_banner");
+        setBannerShown(handle, false, "hide_banner");
     }
 
     public void pauseBanner(final int handle) {
@@ -680,13 +678,7 @@ public final class LevelPlayJNI {
                 if (record.adView == null) {
                     return;
                 }
-                record.adView.setBannerListener(null);
-                record.adView.destroy();
-                ViewGroup parent = (ViewGroup) record.adView.getParent();
-                if (parent != null) {
-                    parent.removeView(record.adView);
-                }
-                record.adView = null;
+                destroyBannerView(record);
             }
         });
     }
@@ -1028,54 +1020,104 @@ public final class LevelPlayJNI {
     }
 
     private void attachBanner(final BannerRecord record) {
-        final LevelPlayBannerAdView adView = record.adView;
-        if (adView == null) {
+        if (record.adView == null || record.layout == null || record.windowManager == null) {
             return;
         }
-
-        int gravity =
-                Gravity.CENTER_HORIZONTAL
-                        | (record.position == BANNER_POSITION_TOP ? Gravity.TOP : Gravity.BOTTOM);
-        FrameLayout.LayoutParams layoutParams =
-                new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        gravity);
-        activity.addContentView(adView, layoutParams);
-
-        if (record.respectSafeArea && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            adView.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
-                @Override
-                public WindowInsets onApplyWindowInsets(View view, WindowInsets insets) {
-                    ViewGroup.LayoutParams rawLayoutParams = view.getLayoutParams();
-                    if (rawLayoutParams instanceof FrameLayout.LayoutParams) {
-                        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) rawLayoutParams;
-                        params.leftMargin = insets.getSystemWindowInsetLeft();
-                        params.topMargin = insets.getSystemWindowInsetTop();
-                        params.rightMargin = insets.getSystemWindowInsetRight();
-                        params.bottomMargin = insets.getSystemWindowInsetBottom();
-                        view.setLayoutParams(params);
-                    }
-                    return insets;
-                }
-            });
-            adView.requestApplyInsets();
+        if (record.attached && record.layout.isAttachedToWindow()) {
+            if (!record.shown) {
+                record.layout.setVisibility(View.VISIBLE);
+                record.layout.requestLayout();
+                record.shown = true;
+            }
+            return;
         }
+        record.layout.setVisibility(View.VISIBLE);
+        record.windowManager.addView(record.layout, getBannerWindowParameters(record));
+        record.attached = true;
+        record.shown = true;
     }
 
-    private void setBannerVisibility(final int handle, final int visibility, final String operation) {
+    private WindowManager.LayoutParams getBannerWindowParameters(BannerRecord record) {
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+        params.x = 0;
+        params.y = 0;
+        params.width = WindowManager.LayoutParams.MATCH_PARENT;
+        params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        params.flags =
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        params.gravity =
+                record.position == BANNER_POSITION_TOP ? Gravity.TOP : Gravity.BOTTOM;
+
+        // Application windows are fitted to the system-bar and cutout safe area
+        // by Android. Opting out deliberately requests full-screen placement.
+        if (!record.respectSafeArea) {
+            params.flags |=
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+        }
+        return params;
+    }
+
+    private void setBannerShown(
+            final int handle, final boolean shown, final String operation) {
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 BannerRecord record = banners.get(handle);
-                if (record == null || record.adView == null) {
+                if (record == null || record.adView == null || record.layout == null) {
                     sendInvalidHandle(MSG_BANNER, EVENT_AD_DISPLAY_FAILED,
                             handle, operation);
                     return;
                 }
-                record.adView.setVisibility(visibility);
+                if (shown) {
+                    // Repeated show calls are a strict no-op. A banner hidden
+                    // with GONE remains in the same window so LevelPlay's
+                    // internal WebView keeps both its creative and dimensions.
+                    attachBanner(record);
+                } else {
+                    hideBanner(record);
+                }
             }
         });
+    }
+
+    private void hideBanner(BannerRecord record) {
+        if (record.layout == null || !record.attached || !record.shown) {
+            return;
+        }
+        record.layout.setVisibility(View.GONE);
+        record.shown = false;
+    }
+
+    private void detachBanner(BannerRecord record) {
+        if (record.windowManager == null || record.layout == null || !record.attached) {
+            return;
+        }
+        try {
+            if (record.layout.isAttachedToWindow()) {
+                record.windowManager.removeView(record.layout);
+            }
+        } finally {
+            record.attached = false;
+            record.shown = false;
+        }
+    }
+
+    private void destroyBannerView(BannerRecord record) {
+        detachBanner(record);
+        LevelPlayBannerAdView adView = record.adView;
+        if (adView != null) {
+            adView.setBannerListener(null);
+            adView.destroy();
+            ViewGroup parent = (ViewGroup) adView.getParent();
+            if (parent != null) {
+                parent.removeView(adView);
+            }
+        }
+        record.adView = null;
+        record.layout = null;
+        record.windowManager = null;
     }
 
     private void sendInvalidHandle(
@@ -1255,6 +1297,10 @@ public final class LevelPlayJNI {
         final int position;
         final boolean respectSafeArea;
         volatile LevelPlayBannerAdView adView;
+        volatile LinearLayout layout;
+        volatile WindowManager windowManager;
+        volatile boolean attached;
+        volatile boolean shown;
 
         BannerRecord(int position, boolean respectSafeArea) {
             this.position = position;
