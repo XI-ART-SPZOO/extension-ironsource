@@ -9,57 +9,25 @@ width = 720
 height = 1280
 
 [project]
-title = IronSource
-version = 1.0.0
+title = LevelPlay
+version = 2.0.0
 dependencies#0 = https://github.com/andsve/dirtylarry/archive/master.zip
+dependencies#1 = https://github.com/defold/extension-automation-bridge/archive/refs/tags/2.0.1.zip
 
 [library]
-include_dirs = extension-ironsource
+include_dirs = extension-levelplay
+defold_min_version = 1.13.0
 
 [android]
 iap_provider = GooglePlay
-package = com.defold.ironsource
-minimum_sdk_version = 21
+package = com.defold.levelplay
+minimum_sdk_version = 24
+target_sdk_version = 36
 
-[iron_source]
-adcolony_android = 1
-admob_android = 1
-admob_android_appid = ca-app-pub-3940256099942544~3347511713
-applovin_android = 1
-bidmachine_android = 1
-charboost_android = 1
-dt_exchange_android = 1
-facebook_android = 1
-hyprmx_android = 1
-inmobi_android = 1
-liftoff_android = 1
-mintegral_android = 1
-moloco_android = 1
-mytarget_android = 1
-pangle_android = 1
-unityads_android = 1
-yandex_ads_android = 1
-ios_use_skan = 1
+[levelplay]
+unity_ads_android = 1
+unity_ads_ios = 1
 ios_tracking_usage_description = Your data will be used to provide you a better and personalized ad experience.
-ios_enable_ats = 1
-adcolony_ios = 1
-admob_ios = 1
-admob_ios_appid = ca-app-pub-3940256099942544~1458002511
-applovin_ios = 1
-bidmachine_ios = 1
-charboost_ios = 1
-dt_exchange_ios = 1
-facebook_ios = 1
-hyprmx_ios = 1
-inmobi_ios = 1
-liftoff_ios = 1
-maio_ios = 1
-mintegral_ios = 1
-moloco_ios = 1
-mytarget_ios = 1
-pangle_ios = 1
-unityads_ios = 1
 
 [ios]
-bundle_identifier = com.defold.ironsource
-
+bundle_identifier = com.defold.levelplay
