@@ -99,7 +99,9 @@ public class IronSourceJNI {
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                IronSource.launchTestSuite(activity.getApplicationContext());
+                Log.i(TAG, "Launching Test Suite on Android UI thread");
+                IronSource.launchTestSuite(activity);
+                Log.i(TAG, "Test Suite launch call completed");
             }
         });
     }
