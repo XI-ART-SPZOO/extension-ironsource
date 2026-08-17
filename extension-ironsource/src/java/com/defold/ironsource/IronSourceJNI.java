@@ -96,7 +96,12 @@ public class IronSourceJNI {
     }
 
     public void launchTestSuite() {
-        IronSource.launchTestSuite(activity.getApplicationContext());
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                IronSource.launchTestSuite(activity.getApplicationContext());
+            }
+        });
     }
 
     public void setAdaptersDebug(boolean isDebugAdapters) {
