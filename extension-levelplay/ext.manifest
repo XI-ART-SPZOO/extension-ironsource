@@ -3,7 +3,7 @@ name: "LevelPlayExt"
 platforms:
     android:
         context:
-            excludeJars: ["(.*)/androidx-multidex.jar"]
+            excludeJars: ["(.*)/androidx-multidex.jar", "(.*)/kotlin-stdlib-jdk7-(.*).jar", "(.*)/kotlin-stdlib-jdk8-(.*).jar"]
     ios:
         context:
             frameworks: ["UIKit", "AppTrackingTransparency", "AVFoundation", "JavaScriptCore", "WebKit", "AdSupport", "SystemConfiguration"]
