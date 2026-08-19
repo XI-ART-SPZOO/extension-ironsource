@@ -752,18 +752,7 @@ void SetMetaData(const char* key, const char* value)
         NSString* valueString = RequiredString(value);
         if (keyString && valueString)
         {
-            // The Integration Test Suite still reads its opt-in flag from the
-            // legacy metadata store, even when initialization uses the
-            // LevelPlay Ad Unit API. Passing this key to LevelPlay leaves
-            // launchTestSuite reporting that the flag was not enabled.
-            if ([keyString isEqualToString:@"is_test_suite"])
-            {
-                [IronSource setMetaDataWithKey:keyString value:valueString];
-            }
-            else
-            {
-                [LevelPlay setMetaDataWithKey:keyString value:valueString];
-            }
+            [LevelPlay setMetaDataWithKey:keyString value:valueString];
         }
     });
 }

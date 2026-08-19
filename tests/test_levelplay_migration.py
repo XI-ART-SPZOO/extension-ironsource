@@ -37,9 +37,6 @@ IOS_VENDOR_IDENTIFIER_RE = re.compile(
 IOS_HEADER_IMPORT_RE = re.compile(
     r'^#import\s+(?:<IronSource/IronSource\.h>|"IronSource/IronSource\.h")$'
 )
-IOS_TEST_SUITE_METADATA_RE = re.compile(
-    r'^\[IronSource setMetaDataWithKey:keyString value:valueString\];$'
-)
 
 EXPECTED_SOURCE_PATHS = (
     "extension-levelplay/ext.manifest",
@@ -316,10 +313,7 @@ def _old_name_allowed(relative: str, line: str) -> bool:
 
     if (
         relative == "extension-levelplay/src/levelplay_ios.mm"
-        and (
-            IOS_HEADER_IMPORT_RE.fullmatch(line.strip())
-            or IOS_TEST_SUITE_METADATA_RE.fullmatch(line.strip())
-        )
+        and IOS_HEADER_IMPORT_RE.fullmatch(line.strip())
     ):
         return True
 
